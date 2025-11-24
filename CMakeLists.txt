@@ -16,14 +16,13 @@ find_package(GLU REQUIRED)
 
 # source files
 set(SOURCES
-    src/main.cpp
-    src/private/Car.cpp
+    # src/main.cpp
+    src/assignment-2210573.cpp
 )
 
 # For header files, -I
 # include_directories(${PROJECT_SOURCE_DIR}/include)
 set(HEADERS
-    src/private/Car.hpp
 )
 
 add_executable(cg_with_opengl 
