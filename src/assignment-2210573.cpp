@@ -239,6 +239,7 @@ public:
 	static Mesh *buildShape5(float a, float b);
 	static Mesh *buildShape1(float a, int n, int idx1, int idx2);
 	static Mesh *buildShape2(float a, int n, int idx1, int idx2, float size, int range);
+	static Mesh *cylinder(int n);
 };
 
 Mesh *MeshFactory::cube()
@@ -466,6 +467,42 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 		faces.push_back(face6);
 		faces.push_back(face7);
 		faces.push_back(face8);
+	}
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
+
+Mesh *MeshFactory::cylinder(int n)
+{
+	float alpha = 0.0f;
+	float delta = 2 * M_PI / n;
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+	vertices.resize(n + n + 1 + 1);
+
+	for (int i = 0; i < n; ++i)
+	{
+		vertices[i] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]);
+		vertices[i + n] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]);
+
+		alpha += delta;
+	}
+
+	vertices[2 * n] = (new Vertex(Vector3(0.0f, -0.5f, 0.0f), COLORMAP[0]));
+	vertices[2 * n + 1] = (new Vertex(Vector3(0.0f, 0.5f, 0.0f), COLORMAP[0]));
+
+	for (int i = 0; i < n; ++i)
+	{
+		std::vector<int> face1 = {i, (i + 1) % n, 2 * n};
+		std::vector<int> face2 = {(i + n + 1) % n + n, i + n, 2 * n + 1};
+		std::vector<int> face3 = {(i + 1) % n, i, i + n, (i + n + 1) % n + n};
+
+		faces.push_back(face1);
+		faces.push_back(face2);
+		faces.push_back(face3);
 	}
 
 	Mesh *mesh = new Mesh();
@@ -706,12 +743,19 @@ void Scene::init()
 	wheel->scale.set(1.0f, 0.25f, 1.0f);
 	wheel->rotation.set(0.0, 0.0f, 0.0f);
 
+	Mesh *cylinder = MeshFactory::cylinder(10);
+	Object *cyl = new Object();
+	cyl->add(new MeshInstance(cylinder));
+	cyl->scale.set(0.5f, 3.0f, 0.5f);
+	cyl->position.set(4.0f, 1.0f, 2.0f);
+
 	// add objects to the initial scene
 	this->add(cubeObj);
 	this->add(longTunnel);
 	this->add(longTube);
 	this->add(fan);
 	this->add(wheel);
+	this->add(cyl);
 }
 
 Scene::~Scene()
