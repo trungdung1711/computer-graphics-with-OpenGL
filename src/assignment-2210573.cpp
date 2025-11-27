@@ -234,9 +234,39 @@ void Mesh::draw()
 class MeshFactory
 {
 public:
+	static Mesh *cube();
 	static Mesh *buildShape4(float a, float b);
 	static Mesh *buildShape5(float a, float b);
+	static Mesh *buildShape1(float a, int n, int idx1, int idx2);
 };
+
+Mesh *MeshFactory::cube()
+{
+	std::vector<Vertex *> vertices = {
+		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[1]),
+		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[2]),
+		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[1]),
+		new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[2]),
+		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[1]),
+	};
+
+	std::vector<std::vector<int>> faces = {
+		{0, 1, 2, 3},
+		{7, 6, 5, 4},
+		{4, 5, 1, 0},
+		{6, 7, 3, 2},
+		{5, 6, 2, 1},
+		{7, 4, 0, 3},
+	};
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
 
 Mesh *MeshFactory::buildShape4(float a, float b)
 {
@@ -309,6 +339,67 @@ Mesh *MeshFactory::buildShape5(float a, float b)
 		{4, 0, 3, 7},
 		{4, 7, 6, 5},
 	};
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
+
+Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
+{
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+
+	float alpha = 0.0f;
+	float dt = 2 * M_PI / n;
+	for (int i = 0; i < n; ++i)
+	{
+		if (i >= idx1 && i <= idx2)
+		{
+			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), COLORMAP[0]));
+		}
+		else
+		{
+			vertices.push_back(new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]));
+		}
+		alpha += dt;
+	}
+
+	alpha = 0.0f;
+	for (int i = 0; i < n; ++i)
+	{
+		if (i >= idx1 && i <= idx2)
+		{
+			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), COLORMAP[0]));
+		}
+		else
+		{
+			vertices.push_back(new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]));
+		}
+		alpha += dt;
+	}
+
+	vertices.push_back(new Vertex(Vector3(0.0f, -0.5f, 0.0f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(0.0f, 0.5f, 0.0f), COLORMAP[0]));
+
+	for (int i = 0; i < n; ++i)
+	{
+		std::vector<int> face = {i, (i + 1) % n, 2 * n};
+		faces.push_back(face);
+	}
+
+	for (int i = n; i < 2 * n; ++i)
+	{
+		std::vector<int> face = {i, 2 * n + 1, (i + 1) % (2 * n)};
+		faces.push_back(face);
+	}
+
+	for (int i = 0; i < n; ++i)
+	{
+		std::vector<int> face = {i, i + n, (i + n + 1) % n + n, (i + 1) % n};
+		faces.push_back(face);
+	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
@@ -517,54 +608,35 @@ void Scene::draw()
 
 void Scene::init()
 {
-	// object
-	float a = 1.0f;
-	float b = 1.0f;
-	float c = 1.0f;
-
-	std::vector<Vertex *> vertices = {
-		new Vertex(Vector3(a / 2, -b / 2, -c / 2), COLORMAP[0]),
-		new Vertex(Vector3(a / 2, -b / 2, c / 2), COLORMAP[1]),
-		new Vertex(Vector3(-a / 2, -b / 2, c / 2), COLORMAP[2]),
-		new Vertex(Vector3(-a / 2, -b / 2, -c / 2), COLORMAP[0]),
-		new Vertex(Vector3(a / 2, b / 2, -c / 2), COLORMAP[1]),
-		new Vertex(Vector3(a / 2, b / 2, c / 2), COLORMAP[2]),
-		new Vertex(Vector3(-a / 2, b / 2, c / 2), COLORMAP[0]),
-		new Vertex(Vector3(-a / 2, b / 2, -c / 2), COLORMAP[1]),
-	};
-
-	std::vector<std::vector<int>> faces = {
-		{0, 1, 2, 3},
-		{7, 6, 5, 4},
-		{4, 5, 1, 0},
-		{6, 7, 3, 2},
-		{5, 6, 2, 1},
-		{7, 4, 0, 3},
-	};
-
-	Mesh *mesh = new Mesh();
-	mesh->build(vertices, faces);
-	Object *cube = new Object();
-	cube->add(new MeshInstance(mesh));
-	cube->scale.set(0.5f, 0.5f, 0.5f);
-	cube->position.set(0.0f, 0.0f, 3.0f);
+	Mesh *cube = MeshFactory::cube();
+	Object *cubeObj = new Object();
+	cubeObj->add(new MeshInstance(cube));
+	cubeObj->scale.set(0.5f, 0.5f, 0.5f);
+	cubeObj->position.set(-3.0f, 0.0f, -3.0f);
 
 	Mesh *shape4 = MeshFactory::buildShape4(0.8f, 0.8f);
 	Object *longTunnel = new Object();
 	longTunnel->add(new MeshInstance(shape4));
 	longTunnel->scale.set(1.0f, 2.0f, 1.0f);
-	longTunnel->position.set(-2.0f, 0.0f, -2.0f);
+	longTunnel->position.set(-3.0f, 0.0f, 3.0f);
 
 	Mesh *shape5 = MeshFactory::buildShape5(0.8f, 0.95f);
 	Object *longTube = new Object();
 	longTube->add(new MeshInstance(shape5));
-	longTube->position.set(1.0f, 0.0f, 1.0f);
 	longTube->scale.set(0.5f, 5.0f, 0.5f);
+	longTube->position.set(2.0f, 0.0f, -4.0f);
+
+	Mesh *shape1 = MeshFactory::buildShape1(1.2f, 90, 12, 33);
+	Object *fan = new Object();
+	fan->add(new MeshInstance(shape1));
+	fan->scale.set(1.5f, 0.25f, 1.5f);
+	fan->position.set(2.0, 0.0f, 2.0f);
 
 	// add objects to the initial scene
-	this->add(cube);
+	this->add(cubeObj);
 	this->add(longTunnel);
 	this->add(longTube);
+	this->add(fan);
 }
 
 Scene::~Scene()
