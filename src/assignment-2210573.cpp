@@ -234,51 +234,87 @@ void Mesh::draw()
 class MeshFactory
 {
 public:
-	static Mesh *buildShape4(float a, float b)
-	{
-
-		std::vector<Vertex *> vertices = {
-			new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
-			new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
-
-			new Vertex(Vector3(a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
-			new Vertex(Vector3(a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
-
-			new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
-			new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
-
-			new Vertex(Vector3(a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
-			new Vertex(Vector3(a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
-			new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
-		};
-
-		std::vector<std::vector<int>> faces = {
-			{0, 8, 9, 1},
-			{9, 10, 2, 1},
-			{2, 10, 11, 3},
-			{8, 0, 3, 11},
-			{8, 12, 13, 9},
-			{13, 14, 10, 9},
-			{15, 11, 10, 14},
-			{8, 11, 15, 12},
-			{1, 5, 4, 0},
-			{1, 2, 6, 5},
-			{2, 3, 7, 6},
-			{7, 3, 0, 4},
-		};
-
-		Mesh *mesh = new Mesh();
-		mesh->build(vertices, faces);
-		return mesh;
-	}
+	static Mesh *buildShape4(float a, float b);
+	static Mesh *buildShape5(float a, float b);
 };
+
+Mesh *MeshFactory::buildShape4(float a, float b)
+{
+
+	std::vector<Vertex *> vertices = {
+		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+
+		new Vertex(Vector3(a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
+
+		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
+
+		new Vertex(Vector3(a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
+	};
+
+	std::vector<std::vector<int>> faces = {
+		{0, 8, 9, 1},
+		{9, 10, 2, 1},
+		{2, 10, 11, 3},
+		{8, 0, 3, 11},
+		{8, 12, 13, 9},
+		{13, 14, 10, 9},
+		{15, 11, 10, 14},
+		{8, 11, 15, 12},
+		{1, 5, 4, 0},
+		{1, 2, 6, 5},
+		{2, 3, 7, 6},
+		{7, 3, 0, 4},
+	};
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+	return mesh;
+}
+
+Mesh *MeshFactory::buildShape5(float a, float b)
+{
+	std::vector<Vertex *> vertices = {
+		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+
+		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
+		new Vertex(Vector3(0.5f, 0.5f, a - 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, 0.5f, a - 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
+
+		new Vertex(Vector3(0.5f, b - 0.5f, 0.5f), COLORMAP[0]),
+		new Vertex(Vector3(-0.5f, b - 0.5f, 0.5f), COLORMAP[0]),
+	};
+
+	std::vector<std::vector<int>> faces = {
+		{4, 5, 8, 1, 0},
+		{6, 7, 3, 2, 9},
+		{5, 6, 9, 8},
+		{8, 9, 2, 1},
+		{2, 3, 0, 1},
+		{4, 0, 3, 7},
+		{4, 7, 6, 5},
+	};
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
 
 class MeshInstance
 {
@@ -508,24 +544,27 @@ void Scene::init()
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
-
 	Object *cube = new Object();
 	cube->add(new MeshInstance(mesh));
+	cube->scale.set(0.5f, 0.5f, 0.5f);
+	cube->position.set(0.0f, 0.0f, 3.0f);
 
-	// set the parameters, when draw, it will
-	// read those and transform the raw mesh
-	cube->scale.set(1.0f, 1.0f, 1.0f);
-	cube->position.set(3.0f, 0.0f, 3.0f);
+	Mesh *shape4 = MeshFactory::buildShape4(0.8f, 0.8f);
+	Object *longTunnel = new Object();
+	longTunnel->add(new MeshInstance(shape4));
+	longTunnel->scale.set(1.0f, 2.0f, 1.0f);
+	longTunnel->position.set(-2.0f, 0.0f, -2.0f);
 
-	Mesh *shape4 = MeshFactory::buildShape4(0.8, 0.8);
-	Object *weird = new Object();
-	weird->add(new MeshInstance(shape4));
+	Mesh *shape5 = MeshFactory::buildShape5(0.8f, 0.95f);
+	Object *longTube = new Object();
+	longTube->add(new MeshInstance(shape5));
+	longTube->position.set(1.0f, 0.0f, 1.0f);
+	longTube->scale.set(0.5f, 5.0f, 0.5f);
 
-	weird->scale.set(1.0f, 2.0f, 1.0f);
-	weird->position.set(0.0f, 0.0f, 0.0f);
-
+	// add objects to the initial scene
 	this->add(cube);
-	this->add(weird);
+	this->add(longTunnel);
+	this->add(longTube);
 }
 
 Scene::~Scene()
