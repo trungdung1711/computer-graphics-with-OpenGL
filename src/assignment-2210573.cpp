@@ -5,7 +5,7 @@
 #include <cmath>
 #include <vector>
 
-// VECTOR3
+// ###########################################################
 // ###########################################################
 class Vector3
 {
@@ -76,8 +76,9 @@ void Vector3::set(float x, float y, float z)
 	this->z = z;
 }
 // ###########################################################
+// ###########################################################
 
-// GLOBAL
+// ###########################################################
 // ###########################################################
 int WIDTH = 500;
 int HEIGHT = 500;
@@ -96,6 +97,7 @@ void clean()
 {
 	delete[] COLORMAP;
 }
+// ###########################################################
 // ###########################################################
 
 class Vertex
@@ -152,15 +154,11 @@ public:
 
 public:
 	Mesh();
-	~Mesh();
-
 	void build(const std::vector<Vertex *> &inVertices, const std::vector<std::vector<int>> &inFaces);
-
 	void drawWire();
-
 	void drawColor();
-
 	void draw();
+	~Mesh();
 };
 
 Mesh::Mesh()
@@ -220,6 +218,7 @@ void Mesh::draw()
 {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	glLineWidth(2.0f);
 	for (const std::vector<int> &face : faces)
 	{
 		glBegin(GL_POLYGON);
@@ -231,6 +230,10 @@ void Mesh::draw()
 		glEnd();
 	}
 }
+
+class MeshFactory
+{
+};
 
 class MeshInstance
 {
@@ -262,6 +265,8 @@ void MeshInstance::draw()
 	glPopMatrix();
 }
 
+// ###########################################################
+// ###########################################################
 class Object
 {
 public:
@@ -315,14 +320,11 @@ Object::~Object()
 		delete part;
 	}
 }
+// ###########################################################
+// ###########################################################
 
-/*
-############ OBJECT MODELING
-*/
-
-/*
-############ CAMERA
-*/
+// ###########################################################
+// ###########################################################
 class Camera
 {
 public:
@@ -339,14 +341,11 @@ public:
 				  up.x, up.y, up.z);
 	}
 };
+// ###########################################################
+// ###########################################################
 
-/*
-############ CAMERA
-*/
-
-/*
-############ LIGHT
-*/
+// ###########################################################
+// ###########################################################
 class Light
 {
 public:
@@ -359,23 +358,20 @@ public:
 		glLightfv(GL_LIGHT0, GL_POSITION, pos);
 	}
 };
-/*
-############ LIGHT
-*/
+// ###########################################################
+// ###########################################################
 
+// ###########################################################
+// ###########################################################
 class Scene
 {
 public:
 	std::vector<Object *> objects;
 
 	void add(Object *object);
-
 	void draw();
-
 	void update();
-
 	void init();
-
 	~Scene();
 };
 
@@ -387,8 +383,10 @@ void Scene::add(Object *object)
 void Scene::draw()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// background of scene
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+	// projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(
@@ -397,13 +395,36 @@ void Scene::draw()
 		0.1f,
 		100.0f);
 
+	// camera
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
 	gluLookAt(
-		5.0f, 5.0f, 5.0f,
+		0.0f, 5.0f, 5.0f,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
+
+	// The coordinate
+	GLfloat length = 10.0f;
+	glLineWidth(5.0f);
+	glBegin(GL_LINES);
+
+	// X axis (red)
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(-length, 0.0f, 0.0f);
+	glVertex3f(length, 0.0f, 0.0f);
+
+	// Y axis (green)
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(0.0f, -length, 0.0f);
+	glVertex3f(0.0f, length, 0.0f);
+
+	// Z axis (blue)
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(0.0f, 0.0f, -length);
+	glVertex3f(0.0f, 0.0f, length);
+
+	glEnd();
 
 	for (Object *object : objects)
 	{
@@ -417,7 +438,7 @@ void Scene::init()
 {
 	// object
 	float a = 1.0f;
-	float b = 5.0f;
+	float b = 1.0f;
 	float c = 1.0f;
 
 	std::vector<Vertex *> vertices = {
@@ -445,7 +466,8 @@ void Scene::init()
 
 	Object *cube = new Object();
 	cube->add(new MeshInstance(mesh));
-	cube->rotation.set(90.0f, 0.0f, 0.0f);
+
+	cube->scale.set(4.0f, 4.0f, 4.0f);
 
 	add(cube);
 }
@@ -457,31 +479,23 @@ Scene::~Scene()
 		delete object;
 	}
 }
+// ###########################################################
+// ###########################################################
 
-class Game;
-
-extern Game gGame;
-
+// ###########################################################
+// ###########################################################
 class Game
 {
 public:
 	Scene *scene;
+	double lastTime;
 
 	Game();
 	void init();
 	void run(int argc, char **argv);
+	void update();
+	void render();
 	~Game();
-
-	static void displayCallback()
-	{
-		// draw the scene again
-		gGame.scene->draw();
-	}
-
-	static void idleCallback()
-	{
-		glutPostRedisplay();
-	}
 };
 
 Game::Game()
@@ -491,15 +505,73 @@ Game::Game()
 
 void Game::init()
 {
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_COLOR_MATERIAL);
+	// init game
+	this->lastTime = 0.0;
 
+	// init the initial scene and meshes
 	this->scene->init();
 }
 
-void Game::run(int argc, char **argv)
+void Game::update()
 {
+	// use glut utility to get elapse time
+	double now = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+	// compute the delta
+	double dt = now - lastTime;
+
+	// avoid large delta time
+	if (dt < 0.0 || dt > 0.5)
+		dt = 0.0;
+
+	// update lastTime
+	this->lastTime = now;
+
+	// scene->update(dt);
+	std::cout << now;
+}
+
+void Game::render()
+{
+	// set bit to clear
+	glViewport(0, 0, WIDTH, HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// drawing vertices to pixels
+	scene->draw();
+
+	// swap buffer
+	glutSwapBuffers();
+}
+
+Game::~Game()
+// ###########################################################
+// ###########################################################
+{
+	delete this->scene;
+}
+
+static Game gGame;
+
+// ###########################################################
+// ###########################################################
+void displayCallback()
+{
+	gGame.render();
+}
+
+void idleCallback()
+{
+	gGame.update();
+	glutPostRedisplay();
+}
+// ###########################################################
+// ###########################################################
+
+int main(int argc, char **argv)
+{
+	// global initialization
+	globalInit();
+
 	// set up the OpenGL context with glut
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
@@ -507,27 +579,18 @@ void Game::run(int argc, char **argv)
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow(ID);
 
-	// init game state -> init the scene
-	init();
+	// init game
+	gGame.init();
 
+	// register callback for display
+	// and idle to update the game logic
 	glutDisplayFunc(displayCallback);
 
+	// to create a game loop, that update
+	// and re-render the frame3
+	glutIdleFunc(idleCallback);
+
 	glutMainLoop();
-}
-
-Game::~Game()
-{
-	delete this->scene;
-}
-
-Game gGame;
-
-int main(int argc, char **argv)
-{
-	globalInit();
-
-	// run the game
-	gGame.run(argc, argv);
 
 	return 0;
 }
