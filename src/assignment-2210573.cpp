@@ -238,6 +238,7 @@ public:
 	static Mesh *buildShape4(float a, float b);
 	static Mesh *buildShape5(float a, float b);
 	static Mesh *buildShape1(float a, int n, int idx1, int idx2);
+	static Mesh *buildShape2(float a, int n, int idx1, int idx2, float size, int range);
 };
 
 Mesh *MeshFactory::cube()
@@ -399,6 +400,72 @@ Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
 	{
 		std::vector<int> face = {i, i + n, (i + n + 1) % n + n, (i + 1) % n};
 		faces.push_back(face);
+	}
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
+
+Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, float size = 0.2, int range = 15)
+{
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+
+	float alpha = 0.0f;
+	float delta = 2 * M_PI / n;
+	int numberSlices = idx2 - idx1 + 1;
+	vertices.resize((numberSlices + 1) * 8);
+
+	for (int i = 0; i < n; ++i)
+	{
+		// loop idx2 - idx1 + 1
+		if (i >= idx1 && i <= (idx2 + 1))
+		{
+			vertices[i - idx1] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]);
+			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f + size) * std::cos(alpha), -0.5f, (1.0f + size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
+
+			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f + size) * std::cos(alpha), 0.5f, (1.0f + size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
+		}
+		alpha += delta;
+	}
+
+	for (int i = 0; i < numberSlices; ++i)
+	{
+		std::vector<int> face1 = {i, i + 1, i + numberSlices + 1 + 1, i + numberSlices + 1};
+		std::vector<int> face2 = {i + 2 * numberSlices + 2, i + 2 * numberSlices + 2 + 1, i + 3 * numberSlices + 3 + 1, i + 3 * numberSlices + 3};
+		std::vector<int> face3 = {i + 4 * numberSlices + 4, i + 4 * numberSlices + 4 + 1, i + 5 * numberSlices + 5 + 1, i + 5 * numberSlices + 5};
+		std::vector<int> face4 = {i + 6 * numberSlices + 6, i + 6 * numberSlices + 6 + 1, i + 7 * numberSlices + 7 + 1, i + 7 * numberSlices + 7};
+
+		std::vector<int> face5 = {i, i + 1, i + 4 * numberSlices + 4 + 1, i + 4 * numberSlices + 4};
+		std::vector<int> face6 = {i + 1 * numberSlices + 1, i + 5 * numberSlices + 5, i + 5 * numberSlices + 5 + 1, i + 1 * numberSlices + 1 + 1};
+		std::vector<int> face7 = {i + 2 * numberSlices + 2, i + 2 * numberSlices + 2 + 1, i + 6 * numberSlices + 6 + 1, i + 6 * numberSlices + 6};
+		std::vector<int> face8 = {i + 3 * numberSlices + 3, i + 7 * numberSlices + 7, i + 7 * numberSlices + 7 + 1, i + 3 * numberSlices + 3 + 1};
+
+		if ((i >= 0 && i < range) || (i >= numberSlices - range && i < numberSlices))
+		{
+			// 0 - 9 and 80 - 89
+			std::vector<int> face1 = {i + 1 * numberSlices + 1, i + 2 * numberSlices + 2, i + 2 * numberSlices + 2 + 1, i + 1 * numberSlices + 1 + 1};
+			std::vector<int> face2 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 5 * numberSlices + 5 + 1, i + 6 * numberSlices + 6 + 1};
+
+			faces.push_back(face1);
+			faces.push_back(face2);
+		}
+
+		faces.push_back(face1);
+		faces.push_back(face2);
+		faces.push_back(face3);
+		faces.push_back(face4);
+		faces.push_back(face5);
+		faces.push_back(face6);
+		faces.push_back(face7);
+		faces.push_back(face8);
 	}
 
 	Mesh *mesh = new Mesh();
@@ -572,7 +639,7 @@ void Scene::draw()
 	glLoadIdentity();
 
 	gluLookAt(
-		3.0f, 5.0f, 6.0f,
+		5.0f, 4.0f, 8.0f,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
 
@@ -626,17 +693,25 @@ void Scene::init()
 	longTube->scale.set(0.5f, 5.0f, 0.5f);
 	longTube->position.set(2.0f, 0.0f, -4.0f);
 
-	Mesh *shape1 = MeshFactory::buildShape1(1.2f, 90, 12, 33);
+	Mesh *shape1 = MeshFactory::buildShape1(1.5f, 360, 45, 134);
 	Object *fan = new Object();
 	fan->add(new MeshInstance(shape1));
 	fan->scale.set(1.5f, 0.25f, 1.5f);
-	fan->position.set(2.0, 0.0f, 2.0f);
+	fan->position.set(-4.0, 0.0f, -4.0f);
+
+	Mesh *shape2 = MeshFactory::buildShape2(1.5f, 360, 45, 134, 0.2f);
+	Object *wheel = new Object();
+	wheel->add(new MeshInstance(shape2));
+	wheel->position.set(2.0f, 0.0f, 2.0f);
+	wheel->scale.set(1.0f, 0.25f, 1.0f);
+	wheel->rotation.set(0.0, 0.0f, 0.0f);
 
 	// add objects to the initial scene
 	this->add(cubeObj);
 	this->add(longTunnel);
 	this->add(longTube);
 	this->add(fan);
+	this->add(wheel);
 }
 
 Scene::~Scene()
