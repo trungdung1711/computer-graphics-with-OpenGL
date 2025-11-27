@@ -233,6 +233,51 @@ void Mesh::draw()
 
 class MeshFactory
 {
+public:
+	static Mesh *buildShape4(float a, float b)
+	{
+
+		std::vector<Vertex *> vertices = {
+			new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
+			new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+
+			new Vertex(Vector3(a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
+			new Vertex(Vector3(a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
+
+			new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
+			new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
+
+			new Vertex(Vector3(a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
+			new Vertex(Vector3(a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
+			new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
+		};
+
+		std::vector<std::vector<int>> faces = {
+			{0, 8, 9, 1},
+			{9, 10, 2, 1},
+			{2, 10, 11, 3},
+			{8, 0, 3, 11},
+			{8, 12, 13, 9},
+			{13, 14, 10, 9},
+			{15, 11, 10, 14},
+			{8, 11, 15, 12},
+			{1, 5, 4, 0},
+			{1, 2, 6, 5},
+			{2, 3, 7, 6},
+			{7, 3, 0, 4},
+		};
+
+		Mesh *mesh = new Mesh();
+		mesh->build(vertices, faces);
+		return mesh;
+	}
 };
 
 class MeshInstance
@@ -243,7 +288,7 @@ public:
 	Vector3 localRotation;
 	Vector3 localScale;
 
-	MeshInstance(Mesh *m) : mesh(m), localPosition(), localRotation(), localScale(1, 1, 1) {}
+	MeshInstance(Mesh *m) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f) {}
 
 	void draw();
 };
@@ -400,7 +445,7 @@ void Scene::draw()
 	glLoadIdentity();
 
 	gluLookAt(
-		0.0f, 5.0f, 5.0f,
+		3.0f, 5.0f, 6.0f,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
 
@@ -467,9 +512,20 @@ void Scene::init()
 	Object *cube = new Object();
 	cube->add(new MeshInstance(mesh));
 
-	cube->scale.set(4.0f, 4.0f, 4.0f);
+	// set the parameters, when draw, it will
+	// read those and transform the raw mesh
+	cube->scale.set(1.0f, 1.0f, 1.0f);
+	cube->position.set(3.0f, 0.0f, 3.0f);
 
-	add(cube);
+	Mesh *shape4 = MeshFactory::buildShape4(0.8, 0.8);
+	Object *weird = new Object();
+	weird->add(new MeshInstance(shape4));
+
+	weird->scale.set(1.0f, 2.0f, 1.0f);
+	weird->position.set(0.0f, 0.0f, 0.0f);
+
+	this->add(cube);
+	this->add(weird);
 }
 
 Scene::~Scene()
@@ -525,15 +581,14 @@ void Game::update()
 
 	// update lastTime
 	this->lastTime = now;
-
-	// scene->update(dt);
-	std::cout << now;
 }
 
+// the main display function
 void Game::render()
 {
-	// set bit to clear
+	// map the whole viewport
 	glViewport(0, 0, WIDTH, HEIGHT);
+	// clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// drawing vertices to pixels
@@ -561,7 +616,9 @@ void displayCallback()
 
 void idleCallback()
 {
+	// update game logic
 	gGame.update();
+	// tell OpenGL to redraw the scene's vertices
 	glutPostRedisplay();
 }
 // ###########################################################
