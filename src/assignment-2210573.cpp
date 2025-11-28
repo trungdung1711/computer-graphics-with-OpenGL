@@ -1,3 +1,4 @@
+// Lê Bùi Trung Dũng - 2210573
 #include <iostream>
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -80,8 +81,8 @@ void Vector3::set(float x, float y, float z)
 
 // ###########################################################
 // ###########################################################
-int WIDTH = 500;
-int HEIGHT = 500;
+int WIDTH = 800;
+int HEIGHT = 800;
 const char *ID = "Le Bui Trung Dung - 2210573";
 Vector3 *COLORMAP;
 
@@ -650,15 +651,34 @@ public:
 	Vector3 target;
 	Vector3 up;
 
-	Camera() : position(0, 0, 5), target(0, 0, 0), up(0, 1, 0) {}
+	float velocity;
+	float omega;
+	float radius;
+	float angle;
+	float height;
 
-	void apply()
+	Camera() : position(0, 0, 5), target(0, 0, 0), up(0, 1, 0), velocity{1.0f}, radius(7.0f), angle(M_PI / 2), omega{M_PI / 8}, height{0.0f}
 	{
-		gluLookAt(position.x, position.y, position.z,
-				  target.x, target.y, target.z,
-				  up.x, up.y, up.z);
 	}
+
+	void apply();
 };
+
+void Camera::apply()
+{
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(
+		position.x,
+		position.y,
+		position.z,
+		target.x,
+		target.y,
+		target.z,
+		up.x,
+		up.y,
+		up.z);
+}
 // ###########################################################
 // ###########################################################
 
@@ -685,44 +705,31 @@ class Scene
 {
 public:
 	std::vector<Object *> objects;
+	Camera *camera;
 
+	Scene();
 	void add(Object *object);
+	void drawAxes();
 	void draw();
 	void update();
 	void init();
 	~Scene();
 };
 
+Scene::Scene()
+{
+	camera = new Camera();
+}
+
 void Scene::add(Object *object)
 {
 	this->objects.push_back(object);
 }
 
-void Scene::draw()
+void Scene::drawAxes()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// background of scene
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glPushMatrix();
 
-	// projection
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(
-		60.0f,
-		(float)WIDTH / (float)HEIGHT,
-		0.1f,
-		100.0f);
-
-	// camera
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	gluLookAt(
-		5.0f, 4.0f, 8.0f,
-		0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f);
-
-	// The coordinate
 	GLfloat length = 10.0f;
 	glLineWidth(5.0f);
 	glBegin(GL_LINES);
@@ -744,6 +751,29 @@ void Scene::draw()
 
 	glEnd();
 
+	glPopMatrix();
+}
+
+void Scene::draw()
+{
+	// set up background color
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	// set up projection method
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(
+		60.0f,
+		(float)WIDTH / (float)HEIGHT,
+		0.1f,
+		100.0f);
+
+	// set up current camera
+	this->camera->apply();
+
+	// start drawing
+	drawAxes();
+
 	for (Object *object : objects)
 	{
 		object->draw();
@@ -754,6 +784,7 @@ void Scene::draw()
 
 void Scene::init()
 {
+	// set up the initial objects
 	Mesh *cube = MeshFactory::cube();
 	Object *cubeObj = new Object();
 	cubeObj->add(new MeshInstance(cube));
@@ -806,6 +837,20 @@ void Scene::init()
 	this->add(wheel);
 	this->add(cyl);
 	this->add(magicBox);
+
+	float angle = M_PI / 2;
+	float height = 0.0f;
+	float radius = 7.0f;
+
+	// initial state
+	this->camera->angle = angle;
+	this->camera->height = height;
+	this->camera->radius = radius;
+
+	this->camera->position.set(radius * std::cos(angle), height, radius * std::sin(angle));
+	// fixed
+	this->camera->target.set(0.0f, 0.0f, 0.0f);
+	this->camera->up.set(0.0f, 1.0f, 0.0f);
 }
 
 Scene::~Scene()
@@ -814,6 +859,8 @@ Scene::~Scene()
 	{
 		delete object;
 	}
+
+	delete camera;
 }
 // ###########################################################
 // ###########################################################
@@ -823,8 +870,19 @@ Scene::~Scene()
 class Game
 {
 public:
+	enum Action
+	{
+		ACTION_NONE = 0,
+		ACTION_MOVE_CAM_CCW,
+		ACTION_MOVE_CAM_CW,
+		ACTION_MOVE_CAM_UP,
+		ACITON_MOVE_CAM_DOWN,
+		ACTION_MOVE_CAM_FORWARD,
+		ACTION_MOVE_CAM_BACKWARD
+	};
 	Scene *scene;
 	double lastTime;
+	bool *actions;
 
 	Game();
 	void init();
@@ -837,6 +895,11 @@ public:
 Game::Game()
 {
 	this->scene = new Scene();
+	this->actions = new bool[100];
+	for (int i = 0; i < 100; ++i)
+	{
+		this->actions[i] = false;
+	}
 }
 
 void Game::init()
@@ -859,6 +922,56 @@ void Game::update()
 	if (dt < 0.0 || dt > 0.5)
 		dt = 0.0;
 
+	if (this->actions[ACTION_MOVE_CAM_UP])
+	{
+		this->scene->camera->height += dt * this->scene->camera->velocity;
+		this->scene->camera->position.y = this->scene->camera->height;
+	}
+
+	if (this->actions[ACITON_MOVE_CAM_DOWN])
+	{
+		this->scene->camera->height -= dt * this->scene->camera->velocity;
+		this->scene->camera->position.y = this->scene->camera->height;
+	}
+
+	if (this->actions[ACTION_MOVE_CAM_FORWARD])
+	{
+		float angle = this->scene->camera->angle;
+		this->scene->camera->radius -= dt * this->scene->camera->velocity;
+		float radius = this->scene->camera->radius;
+
+		this->scene->camera->position.x = radius * std::cos(angle);
+		this->scene->camera->position.z = radius * std::sin(angle);
+	}
+
+	if (this->actions[ACTION_MOVE_CAM_BACKWARD])
+	{
+		float angle = this->scene->camera->angle;
+		this->scene->camera->radius += dt * this->scene->camera->velocity;
+		float radius = this->scene->camera->radius;
+
+		this->scene->camera->position.x = radius * std::cos(angle);
+		this->scene->camera->position.z = radius * std::sin(angle);
+	}
+
+	if (this->actions[ACTION_MOVE_CAM_CW])
+	{
+		float radius = this->scene->camera->radius;
+		this->scene->camera->angle += dt * this->scene->camera->omega;
+		float angle = this->scene->camera->angle;
+		this->scene->camera->position.x = radius * std::cos(angle);
+		this->scene->camera->position.z = radius * std::sin(angle);
+	}
+
+	if (this->actions[ACTION_MOVE_CAM_CCW])
+	{
+		float radius = this->scene->camera->radius;
+		this->scene->camera->angle -= dt * this->scene->camera->omega;
+		float angle = this->scene->camera->angle;
+		this->scene->camera->position.x = radius * std::cos(angle);
+		this->scene->camera->position.z = radius * std::sin(angle);
+	}
+
 	// update lastTime
 	this->lastTime = now;
 }
@@ -879,11 +992,11 @@ void Game::render()
 }
 
 Game::~Game()
-// ###########################################################
-// ###########################################################
 {
 	delete this->scene;
 }
+// ###########################################################
+// ###########################################################
 
 static Game gGame;
 
@@ -900,6 +1013,70 @@ void idleCallback()
 	gGame.update();
 	// tell OpenGL to redraw the scene's vertices
 	glutPostRedisplay();
+}
+
+void onKeyDown(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+	case '+':
+		gGame.actions[Game::ACTION_MOVE_CAM_FORWARD] = true;
+		break;
+	case '-':
+		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = true;
+		break;
+	}
+}
+
+void onKeyUp(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+	case '+':
+		gGame.actions[Game::ACTION_MOVE_CAM_FORWARD] = false;
+		break;
+	case '-':
+		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = false;
+		break;
+	}
+}
+
+void onSpecialDown(int key, int x, int y)
+{
+	switch (key)
+	{
+	case GLUT_KEY_UP:
+		gGame.actions[Game::ACTION_MOVE_CAM_UP] = true;
+		break;
+	case GLUT_KEY_DOWN:
+		gGame.actions[Game::ACITON_MOVE_CAM_DOWN] = true;
+		break;
+	case GLUT_KEY_LEFT:
+		gGame.actions[Game::ACTION_MOVE_CAM_CW] = true;
+		break;
+	case GLUT_KEY_RIGHT:
+		gGame.actions[Game::ACTION_MOVE_CAM_CCW] = true;
+		break;
+	}
+}
+
+void onSpecialUp(int key, int x, int y)
+{
+	switch (key)
+	{
+	case GLUT_KEY_UP:
+		gGame.actions[Game::ACTION_MOVE_CAM_UP] = false;
+		break;
+	case GLUT_KEY_DOWN:
+		gGame.actions[Game::ACITON_MOVE_CAM_DOWN] = false;
+		break;
+	case GLUT_KEY_LEFT:
+		gGame.actions[Game::ACTION_MOVE_CAM_CW] = false;
+		break;
+	case GLUT_KEY_RIGHT:
+		gGame.actions[Game::ACTION_MOVE_CAM_CCW] = false;
+		break;
+	}
 }
 // ###########################################################
 // ###########################################################
@@ -922,11 +1099,17 @@ int main(int argc, char **argv)
 	// register callback for display
 	// and idle to update the game logic
 	glutDisplayFunc(displayCallback);
-
-	// to create a game loop, that update
-	// and re-render the frame3
 	glutIdleFunc(idleCallback);
 
+	// register callback for inputs
+	glutKeyboardFunc(&onKeyDown);
+	glutKeyboardUpFunc(&onKeyUp);
+	glutSpecialFunc(&onSpecialDown);
+	glutSpecialUpFunc(&onSpecialUp);
+
+	// start the whole loop
+	// normally, this loop will re-render
+	// on demand
 	glutMainLoop();
 
 	return 0;
