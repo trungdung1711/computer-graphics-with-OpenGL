@@ -5,6 +5,7 @@
 #include <GL/glut.h>
 #include <cmath>
 #include <vector>
+#include <map>
 
 // ###########################################################
 // ###########################################################
@@ -76,6 +77,47 @@ void Vector3::set(float x, float y, float z)
 	this->y = y;
 	this->z = z;
 }
+
+class Vector4
+{
+public:
+	float x, y, z, w;
+
+	Vector4()
+		: x(0), y(0), z(0), w(1) {}
+
+	Vector4(float x, float y, float z, float w)
+		: x(x), y(y), z(z), w(w) {}
+
+	Vector4(const Vector4 &v)
+		: x(v.x), y(v.y), z(v.z), w(v.w) {}
+
+	void set(float x, float y, float z, float w);
+	void set(const Vector4 &v);
+
+	const float *data() const;
+};
+
+void Vector4::set(float x, float y, float z, float w)
+{
+	this->x = x;
+	this->y = y;
+	this->z = z;
+	this->w = w;
+}
+
+void Vector4::set(const Vector4 &v)
+{
+	this->x = v.x;
+	this->y = v.y;
+	this->z = v.z;
+	this->w = v.w;
+}
+
+const float *Vector4::data() const
+{
+	return &x;
+}
 // ###########################################################
 // ###########################################################
 
@@ -122,10 +164,10 @@ Vertex::Vertex(Vector3 position)
 	this->position = position;
 }
 
-Vertex::Vertex(Vector3 position, Vector3 color)
+Vertex::Vertex(Vector3 position, Vector3 normal)
 {
 	this->position = position;
-	this->color = color;
+	this->normal = normal;
 }
 
 Vertex::Vertex(Vector3 position, int colorIndex)
@@ -137,15 +179,35 @@ Vertex::Vertex(Vector3 position, int colorIndex)
 class Material
 {
 public:
-	float r, g, b;
+	Vector4 ambient;
+	Vector4 diffuse;
+	Vector4 specular;
+	Vector4 emission;
+	float shininess;
 
-	Material(float r = 1, float g = 1, float b = 1) : r(r), g(g), b(b) {}
-
-	void apply() const
-	{
-		glColor3f(r, g, b);
-	}
+	Material();
+	void apply();
 };
+
+Material::Material()
+{
+	// default material
+	ambient.set(0.2f, 0.2f, 0.2f, 1.0f);
+	diffuse.set(0.8f, 0.8f, 0.8f, 1.0f);
+	specular.set(0.5f, 0.5f, 0.5f, 1.0f);
+	emission.set(0.0f, 0.0f, 0.0f, 1.0f);
+
+	shininess = 32.0f;
+}
+
+void Material::apply()
+{
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient.data());
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse.data());
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular.data());
+	glMaterialfv(GL_FRONT, GL_EMISSION, emission.data());
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+}
 
 class Mesh
 {
@@ -184,13 +246,15 @@ void Mesh::drawWire()
 {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	glLineWidth(2.0f);
 	for (const std::vector<int> &face : faces)
 	{
 		glBegin(GL_POLYGON);
 		for (int idx : face)
 		{
 			Vertex *v = vertices[idx];
-			glColor3f(v->color.x, v->color.y, v->color.z);
+			// blue
+			glColor3f(0.0f, 0.0f, 1.0f);
 			glVertex3f(v->position.x, v->position.y, v->position.z);
 		}
 		glEnd();
@@ -207,7 +271,7 @@ void Mesh::drawColor()
 		{
 			// get the vertex from the set of vertex
 			Vertex *v = vertices[idx];
-			glColor3f(v->color.x, v->color.y, v->color.z);
+			// glColor3f(v->color.x, v->color.y, v->color.z);
 			glNormal3f(v->normal.x, v->normal.y, v->normal.z);
 			glVertex3f(v->position.x, v->position.y, v->position.z);
 		}
@@ -219,36 +283,11 @@ void Mesh::draw(bool isColour = false)
 {
 	if (isColour == true)
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		for (std::vector<int> &f : faces)
-		{
-			glBegin(GL_POLYGON);
-			for (int idx : f)
-			{
-				// get the vertex from the set of vertex
-				Vertex *v = vertices[idx];
-				glColor3f(v->color.x, v->color.y, v->color.z);
-				glNormal3f(v->normal.x, v->normal.y, v->normal.z);
-				glVertex3f(v->position.x, v->position.y, v->position.z);
-			}
-			glEnd();
-		}
+		drawColor();
 	}
 	else
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		glLineWidth(2.0f);
-		for (const std::vector<int> &face : faces)
-		{
-			glBegin(GL_POLYGON);
-			for (int idx : face)
-			{
-				Vertex *v = vertices[idx];
-				glVertex3f(v->position.x, v->position.y, v->position.z);
-			}
-			glEnd();
-		}
+		drawWire();
 	}
 }
 
@@ -552,14 +591,14 @@ Mesh *MeshFactory::cylinder(int n)
 
 	for (int i = 0; i < n; ++i)
 	{
-		vertices[i] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]);
-		vertices[i + n] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]);
-
+		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
+		vertices[i] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), sideNormal);
+		vertices[i + n] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), sideNormal);
 		alpha += delta;
 	}
 
-	vertices[2 * n] = (new Vertex(Vector3(0.0f, -0.5f, 0.0f), COLORMAP[0]));
-	vertices[2 * n + 1] = (new Vertex(Vector3(0.0f, 0.5f, 0.0f), COLORMAP[0]));
+	vertices[2 * n] = new Vertex(Vector3(0.0f, -0.5f, 0.0f), Vector3(0.0f, -1.0f, 0.0f));
+	vertices[2 * n + 1] = new Vertex(Vector3(0.0f, 0.5f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
 
 	for (int i = 0; i < n; ++i)
 	{
@@ -582,13 +621,17 @@ class MeshInstance
 {
 public:
 	Mesh *mesh;
+	Material *material;
 	Vector3 localPosition;
 	Vector3 localRotation;
 	Vector3 localScale;
 
-	MeshInstance(Mesh *m) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f) {}
+	MeshInstance(Mesh *m, Material *material = nullptr) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f), material{material} {}
 
 	void draw(bool isColour);
+	void setMaterial(Material *material);
+	void setDefaultMaterial();
+	~MeshInstance();
 };
 
 void MeshInstance::draw(bool isColour = false)
@@ -604,8 +647,31 @@ void MeshInstance::draw(bool isColour = false)
 	// scaling
 	glScalef(localScale.x, localScale.y, localScale.z);
 
+	if (isColour)
+	{
+		this->material->apply();
+	}
 	mesh->draw(isColour);
+
 	glPopMatrix();
+}
+
+void MeshInstance::setMaterial(Material *material)
+{
+	delete this->material;
+	this->material = material;
+}
+
+void MeshInstance::setDefaultMaterial()
+{
+	delete this->material;
+	Material *m = new Material();
+	this->setMaterial(m);
+}
+
+MeshInstance::~MeshInstance()
+{
+	delete material;
 }
 
 // ###########################################################
@@ -690,8 +756,6 @@ public:
 
 void Camera::apply()
 {
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 	gluLookAt(
 		position.x,
 		position.y,
@@ -711,15 +775,47 @@ void Camera::apply()
 class Light
 {
 public:
-	void apply()
-	{
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
+	// w=1 -> positional, w=0 -> directional
+	Vector4 position;
+	Vector4 ambient;
+	Vector4 diffuse;
+	Vector4 specular;
+	bool enabled;
+	// GL_LIGHT0, GL_LIGHT1, ...
+	GLenum glLightID;
 
-		GLfloat pos[] = {1, 2, 3, 1};
-		glLightfv(GL_LIGHT0, GL_POSITION, pos);
-	}
+	Light(GLenum lightID = GL_LIGHT0);
+
+	void apply() const;
 };
+
+Light::Light(GLenum lightID)
+{
+	// Sunlight as directional light
+	position.set(0.0f, 10.0f, 10.0f, 0.0f);
+	ambient.set(0.2f, 0.2f, 0.2f, 1.0f);
+	diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
+	specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	this->glLightID = lightID;
+	this->enabled = true;
+}
+
+void Light::apply() const
+{
+	if (!enabled)
+	{
+		glDisable(glLightID);
+		return;
+	}
+
+	glEnable(glLightID);
+	glLightfv(glLightID, GL_POSITION, position.data());
+	glLightfv(glLightID, GL_AMBIENT, ambient.data());
+	glLightfv(glLightID, GL_DIFFUSE, diffuse.data());
+	glLightfv(glLightID, GL_SPECULAR, specular.data());
+}
+
 // ###########################################################
 // ###########################################################
 
@@ -728,8 +824,10 @@ public:
 class Scene
 {
 public:
-	std::vector<Object *> objects;
+	std::vector<Light *> lights;
 	Camera *camera;
+	std::vector<Object *> objects;
+	std::map<std::string, Mesh *> meshes;
 	bool isColour;
 
 	Scene();
@@ -738,6 +836,7 @@ public:
 	void draw();
 	void update();
 	void init();
+	void load();
 	~Scene();
 };
 
@@ -780,22 +879,32 @@ void Scene::drawAxes()
 
 void Scene::draw()
 {
-	// set up background color
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
 
-	// set up projection method
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(
-		60.0f,
-		(float)WIDTH / (float)HEIGHT,
-		0.1f,
-		100.0f);
+	gluPerspective(60.0f, float(WIDTH) / float(HEIGHT), 0.1f, 100.0f);
 
-	// set up current camera
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 	this->camera->apply();
 
-	// start drawing
+	if (this->isColour)
+	{
+		glEnable(GL_LIGHTING);
+		glEnable(GL_NORMALIZE);
+		for (Light *light : lights)
+		{
+			light->apply();
+		}
+	}
+	else
+	{
+		glDisable(GL_LIGHTING);
+	}
+
 	drawAxes();
 
 	for (Object *object : objects)
@@ -808,50 +917,75 @@ void Scene::draw()
 
 void Scene::init()
 {
+	this->load();
+
 	// set up the initial objects
-	Mesh *cube = MeshFactory::cube();
-	Object *cubeObj = new Object();
-	cubeObj->add(new MeshInstance(cube));
-	cubeObj->scale.set(0.5f, 0.5f, 0.5f);
-	cubeObj->position.set(-3.0f, 0.0f, -3.0f);
-
-	Mesh *shape4 = MeshFactory::buildShape4(0.8f, 0.8f);
-	Object *longTunnel = new Object();
-	longTunnel->add(new MeshInstance(shape4));
-	longTunnel->scale.set(1.0f, 2.0f, 1.0f);
-	longTunnel->position.set(-3.0f, 0.0f, 3.0f);
-
-	Mesh *shape5 = MeshFactory::buildShape5(0.8f, 0.95f);
-	Object *longTube = new Object();
-	longTube->add(new MeshInstance(shape5));
-	longTube->scale.set(0.5f, 5.0f, 0.5f);
-	longTube->position.set(2.0f, 0.0f, -4.0f);
-
-	Mesh *shape1 = MeshFactory::buildShape1(1.5f, 36, 3, 9);
+	Mesh *shape1 = this->meshes["1"];
+	MeshInstance *shape1MI = new MeshInstance(shape1);
+	shape1MI->setDefaultMaterial();
 	Object *fan = new Object();
-	fan->add(new MeshInstance(shape1));
+	fan->add(shape1MI);
 	fan->scale.set(1.5f, 0.25f, 1.5f);
 	fan->position.set(-4.0, 0.0f, -4.0f);
 
-	Mesh *shape2 = MeshFactory::buildShape2(1.5f, 36, 4, 12, 0.2f, 3);
+	Mesh *shape2 = this->meshes["2"];
+	MeshInstance *shape2MI = new MeshInstance(shape2);
+	shape2MI->setDefaultMaterial();
 	Object *wheel = new Object();
-	wheel->add(new MeshInstance(shape2));
+	wheel->add(shape2MI);
 	wheel->position.set(2.0f, 0.0f, 2.0f);
 	wheel->scale.set(1.0f, 0.25f, 1.0f);
 	wheel->rotation.set(0.0, 0.0f, 0.0f);
 
-	Mesh *cylinder = MeshFactory::cylinder(10);
-	Object *cyl = new Object();
-	cyl->add(new MeshInstance(cylinder));
-	cyl->scale.set(0.5f, 3.0f, 0.5f);
-	cyl->position.set(4.0f, 1.0f, 2.0f);
-
-	Mesh *shape3 = MeshFactory::buildShape3(0.7f);
+	Mesh *shape3 = this->meshes["3"];
+	MeshInstance *shape3MI = new MeshInstance(shape3);
+	shape3MI->setDefaultMaterial();
 	Object *magicBox = new Object();
-	magicBox->add(new MeshInstance(shape3));
+	magicBox->add(shape3MI);
 	magicBox->scale.set(1.0f, 0.4f, 1.0f);
 	magicBox->rotation.set(0.0f, 30.0f, 0.0f);
 	magicBox->position.set(1.0f, 0.0f, 5.0f);
+
+	Mesh *shape4 = this->meshes["4"];
+	MeshInstance *shape4MI = new MeshInstance(shape4);
+	shape4MI->setDefaultMaterial();
+	Object *longTunnel = new Object();
+	longTunnel->add(shape4MI);
+	longTunnel->scale.set(1.0f, 2.0f, 1.0f);
+	longTunnel->position.set(-3.0f, 0.0f, 3.0f);
+
+	Mesh *shape5 = this->meshes["5"];
+	MeshInstance *shape5MI = new MeshInstance(shape5);
+	shape5MI->setDefaultMaterial();
+	Object *longTube = new Object();
+	longTube->add(shape5MI);
+	longTube->scale.set(0.5f, 5.0f, 0.5f);
+	longTube->position.set(2.0f, 0.0f, -4.0f);
+
+	Mesh *cube = this->meshes["cube"];
+	MeshInstance *cubeMI = new MeshInstance(cube);
+	cubeMI->setDefaultMaterial();
+	Object *cubeObj = new Object();
+	cubeObj->add(cubeMI);
+	cubeObj->scale.set(0.5f, 0.5f, 0.5f);
+	cubeObj->position.set(-3.0f, 0.0f, -3.0f);
+
+	Mesh *cylinder = this->meshes["cylinder"];
+	MeshInstance *cylinder1MI = new MeshInstance(cylinder);
+
+	Material *materialCylinder = new Material();
+	materialCylinder->ambient.set(0.1f, 0.1f, 0.1f, 1.0f);
+	materialCylinder->diffuse.set(0.0f, 0.8f, 0.0f, 1.0f);
+	materialCylinder->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+	materialCylinder->emission.set(0.0f, 0.0f, 0.0f, 1.0f);
+	materialCylinder->shininess = 80.0f;
+	cylinder1MI->setMaterial(materialCylinder);
+
+	Object *cyl = new Object();
+
+	cyl->add(cylinder1MI);
+	cyl->scale.set(0.5f, 3.0f, 0.5f);
+	cyl->position.set(4.0f, 1.0f, 2.0f);
 
 	// add objects to the initial scene
 	this->add(cubeObj);
@@ -862,19 +996,35 @@ void Scene::init()
 	this->add(cyl);
 	this->add(magicBox);
 
+	// set up initial camera
 	float angle = M_PI / 2;
 	float height = 0.0f;
 	float radius = 7.0f;
 
-	// initial state
 	this->camera->angle = angle;
 	this->camera->height = height;
 	this->camera->radius = radius;
 
 	this->camera->position.set(radius * std::cos(angle), height, radius * std::sin(angle));
-	// fixed
 	this->camera->target.set(0.0f, 0.0f, 0.0f);
 	this->camera->up.set(0.0f, 1.0f, 0.0f);
+
+	// set up lights
+	Light *sun = new Light(GL_LIGHT0);
+	this->lights.push_back(sun);
+}
+
+void Scene::load()
+{
+	// should generalize to name
+	// update based on scene
+	this->meshes["cube"] = MeshFactory::cube();
+	this->meshes["cylinder"] = MeshFactory::cylinder(360);
+	this->meshes["1"] = MeshFactory::buildShape1(1.2f, 360, 45, 134);
+	this->meshes["2"] = MeshFactory::buildShape2(1.2f, 360, 45, 134, 0.2f);
+	this->meshes["3"] = MeshFactory::buildShape3(0.8f);
+	this->meshes["4"] = MeshFactory::buildShape4(0.8f, 0.8f);
+	this->meshes["5"] = MeshFactory::buildShape5(0.9f, 0.9f);
 }
 
 Scene::~Scene()
@@ -885,6 +1035,16 @@ Scene::~Scene()
 	}
 
 	delete camera;
+
+	for (Light *light : this->lights)
+	{
+		delete light;
+	}
+
+	for (auto p : this->meshes)
+	{
+		delete p.second;
+	}
 }
 // ###########################################################
 // ###########################################################
@@ -911,7 +1071,6 @@ public:
 
 	Game();
 	void init();
-	void run(int argc, char **argv);
 	void update();
 	void render();
 	~Game();
