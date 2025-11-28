@@ -310,6 +310,10 @@ Mesh *MeshFactory::buildShape4(float a, float b)
 		{1, 2, 6, 5},
 		{2, 3, 7, 6},
 		{7, 3, 0, 4},
+		{12, 15, 7, 4},
+		{15, 14, 6, 7},
+		{14, 13, 5, 6},
+		{13, 12, 4, 5},
 	};
 
 	Mesh *mesh = new Mesh();
