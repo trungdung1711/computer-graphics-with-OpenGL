@@ -158,7 +158,7 @@ public:
 	void build(const std::vector<Vertex *> &inVertices, const std::vector<std::vector<int>> &inFaces);
 	void drawWire();
 	void drawColor();
-	void draw();
+	void draw(bool isColour);
 	~Mesh();
 };
 
@@ -215,20 +215,40 @@ void Mesh::drawColor()
 	}
 }
 
-void Mesh::draw()
+void Mesh::draw(bool isColour = false)
 {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	glLineWidth(2.0f);
-	for (const std::vector<int> &face : faces)
+	if (isColour == true)
 	{
-		glBegin(GL_POLYGON);
-		for (int idx : face)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		for (std::vector<int> &f : faces)
 		{
-			Vertex *v = vertices[idx];
-			glVertex3f(v->position.x, v->position.y, v->position.z);
+			glBegin(GL_POLYGON);
+			for (int idx : f)
+			{
+				// get the vertex from the set of vertex
+				Vertex *v = vertices[idx];
+				glColor3f(v->color.x, v->color.y, v->color.z);
+				glNormal3f(v->normal.x, v->normal.y, v->normal.z);
+				glVertex3f(v->position.x, v->position.y, v->position.z);
+			}
+			glEnd();
 		}
-		glEnd();
+	}
+	else
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		glLineWidth(2.0f);
+		for (const std::vector<int> &face : faces)
+		{
+			glBegin(GL_POLYGON);
+			for (int idx : face)
+			{
+				Vertex *v = vertices[idx];
+				glVertex3f(v->position.x, v->position.y, v->position.z);
+			}
+			glEnd();
+		}
 	}
 }
 
@@ -568,10 +588,10 @@ public:
 
 	MeshInstance(Mesh *m) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f) {}
 
-	void draw();
+	void draw(bool isColour);
 };
 
-void MeshInstance::draw()
+void MeshInstance::draw(bool isColour = false)
 {
 	glPushMatrix();
 
@@ -584,7 +604,7 @@ void MeshInstance::draw()
 	// scaling
 	glScalef(localScale.x, localScale.y, localScale.z);
 
-	mesh->draw();
+	mesh->draw(isColour);
 	glPopMatrix();
 }
 
@@ -601,7 +621,7 @@ public:
 
 	Object();
 	void add(MeshInstance *mesh);
-	void draw();
+	void draw(bool isColour);
 	~Object();
 };
 
@@ -617,7 +637,7 @@ void Object::add(MeshInstance *iMesh)
 	this->parts.push_back(iMesh);
 }
 
-void Object::draw()
+void Object::draw(bool isColour = false)
 {
 	glPushMatrix();
 	// moving
@@ -630,7 +650,7 @@ void Object::draw()
 	glScalef(scale.x, scale.y, scale.z);
 	for (auto &part : parts)
 	{
-		part->draw();
+		part->draw(isColour);
 	}
 
 	glPopMatrix();
@@ -710,6 +730,7 @@ class Scene
 public:
 	std::vector<Object *> objects;
 	Camera *camera;
+	bool isColour;
 
 	Scene();
 	void add(Object *object);
@@ -720,9 +741,8 @@ public:
 	~Scene();
 };
 
-Scene::Scene()
+Scene::Scene() : isColour{false}, camera{new Camera()}
 {
-	camera = new Camera();
 }
 
 void Scene::add(Object *object)
@@ -780,7 +800,7 @@ void Scene::draw()
 
 	for (Object *object : objects)
 	{
-		object->draw();
+		object->draw(this->isColour);
 	}
 
 	glutSwapBuffers();
@@ -807,13 +827,13 @@ void Scene::init()
 	longTube->scale.set(0.5f, 5.0f, 0.5f);
 	longTube->position.set(2.0f, 0.0f, -4.0f);
 
-	Mesh *shape1 = MeshFactory::buildShape1(1.5f, 360, 45, 134);
+	Mesh *shape1 = MeshFactory::buildShape1(1.5f, 36, 3, 9);
 	Object *fan = new Object();
 	fan->add(new MeshInstance(shape1));
 	fan->scale.set(1.5f, 0.25f, 1.5f);
 	fan->position.set(-4.0, 0.0f, -4.0f);
 
-	Mesh *shape2 = MeshFactory::buildShape2(1.5f, 360, 45, 134, 0.2f);
+	Mesh *shape2 = MeshFactory::buildShape2(1.5f, 36, 4, 12, 0.2f, 3);
 	Object *wheel = new Object();
 	wheel->add(new MeshInstance(shape2));
 	wheel->position.set(2.0f, 0.0f, 2.0f);
@@ -882,7 +902,8 @@ public:
 		ACTION_MOVE_CAM_UP,
 		ACITON_MOVE_CAM_DOWN,
 		ACTION_MOVE_CAM_FORWARD,
-		ACTION_MOVE_CAM_BACKWARD
+		ACTION_MOVE_CAM_BACKWARD,
+		ACTION_COLOUR
 	};
 	Scene *scene;
 	double lastTime;
@@ -976,6 +997,8 @@ void Game::update()
 		this->scene->camera->position.z = radius * std::sin(angle);
 	}
 
+	this->scene->isColour = actions[ACTION_COLOUR];
+
 	// update lastTime
 	this->lastTime = now;
 }
@@ -1028,6 +1051,10 @@ void onKeyDown(unsigned char key, int x, int y)
 		break;
 	case '-':
 		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = true;
+		break;
+	case 'w':
+	case 'W':
+		gGame.actions[Game::ACTION_COLOUR] = !gGame.actions[Game::ACTION_COLOUR];
 		break;
 	}
 }
