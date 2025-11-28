@@ -239,6 +239,7 @@ public:
 	static Mesh *buildShape5(float a, float b);
 	static Mesh *buildShape1(float a, int n, int idx1, int idx2);
 	static Mesh *buildShape2(float a, int n, int idx1, int idx2, float size, int range);
+	static Mesh *buildShape3(float a);
 	static Mesh *cylinder(int n);
 };
 
@@ -468,6 +469,47 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 		faces.push_back(face7);
 		faces.push_back(face8);
 	}
+
+	Mesh *mesh = new Mesh();
+	mesh->build(vertices, faces);
+
+	return mesh;
+}
+
+Mesh *MeshFactory::buildShape3(float a)
+{
+	std::vector<Vertex *> vertices;
+
+	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, -a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, 0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, 0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, -a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, -0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, -0.5f), COLORMAP[0]));
+
+	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, -a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, 0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, 0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, -a / 2), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, -0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, -0.5f), COLORMAP[0]));
+
+	std::vector<std::vector<int>> faces;
+	faces.push_back(std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7});
+	faces.push_back(std::vector<int>{15, 14, 13, 12, 11, 10, 9, 8});
+
+	faces.push_back(std::vector<int>{8, 9, 1, 0});
+	faces.push_back(std::vector<int>{9, 10, 2, 1});
+	faces.push_back(std::vector<int>{10, 11, 3, 2});
+	faces.push_back(std::vector<int>{11, 12, 4, 3});
+	faces.push_back(std::vector<int>{12, 13, 5, 4});
+	faces.push_back(std::vector<int>{13, 14, 6, 5});
+	faces.push_back(std::vector<int>{14, 15, 7, 6});
+	faces.push_back(std::vector<int>{8, 0, 7, 15});
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
@@ -749,6 +791,13 @@ void Scene::init()
 	cyl->scale.set(0.5f, 3.0f, 0.5f);
 	cyl->position.set(4.0f, 1.0f, 2.0f);
 
+	Mesh *shape3 = MeshFactory::buildShape3(0.7f);
+	Object *magicBox = new Object();
+	magicBox->add(new MeshInstance(shape3));
+	magicBox->scale.set(1.0f, 0.4f, 1.0f);
+	magicBox->rotation.set(0.0f, 30.0f, 0.0f);
+	magicBox->position.set(1.0f, 0.0f, 5.0f);
+
 	// add objects to the initial scene
 	this->add(cubeObj);
 	this->add(longTunnel);
@@ -756,6 +805,7 @@ void Scene::init()
 	this->add(fan);
 	this->add(wheel);
 	this->add(cyl);
+	this->add(magicBox);
 }
 
 Scene::~Scene()
