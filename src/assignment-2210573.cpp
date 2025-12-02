@@ -832,7 +832,11 @@ public:
 
 	Scene();
 	void add(Object *object);
+	void renderBitmapString(float x, float y, float z, void *font, const char *string);
 	void drawAxes();
+	void drawAxisTicks(float min, float max, float size);
+	void applyPerspectiveProjection();
+	void applyOrthographicProjection();
 	void draw();
 	void update();
 	void init();
@@ -847,6 +851,65 @@ Scene::Scene() : isColour{false}, camera{new Camera()}
 void Scene::add(Object *object)
 {
 	this->objects.push_back(object);
+}
+
+void Scene::renderBitmapString(float x, float y, float z, void *font, const char *string)
+{
+	glRasterPos3f(x, y, z);
+	for (const char *c = string; *c != '\0'; c++)
+		glutBitmapCharacter(font, *c);
+}
+
+void Scene::drawAxisTicks(float min = -10, float max = 10, float size = 0.05f)
+{
+	glColor3f(0.0f, 0.0f, 0.0f);
+	for (int i = min; i <= max; i++)
+	{
+		glBegin(GL_LINES);
+		glVertex3f(i, -size, 0);
+		glVertex3f(i, size, 0);
+		glEnd();
+
+		// draw number
+		if (i != 0)
+		{
+			char buf[8];
+			sprintf(buf, "%d", i);
+			renderBitmapString(i, 0.2f, 0, GLUT_BITMAP_HELVETICA_12, buf);
+		}
+	}
+
+	for (int i = min; i <= max; i++)
+	{
+		glBegin(GL_LINES);
+		glVertex3f(-size, i, 0);
+		glVertex3f(size, i, 0);
+		glEnd();
+
+		// draw number
+		if (i != 0)
+		{
+			char buf[8];
+			sprintf(buf, "%d", i);
+			renderBitmapString(0.2f, i, 0, GLUT_BITMAP_HELVETICA_12, buf);
+		}
+	}
+
+	for (int i = min; i <= max; i++)
+	{
+		glBegin(GL_LINES);
+		glVertex3f(0, -size, i);
+		glVertex3f(0, size, i);
+		glEnd();
+
+		// draw number
+		if (i != 0)
+		{
+			char buf[8];
+			sprintf(buf, "%d", i);
+			renderBitmapString(0.1f, 0.1f, i, GLUT_BITMAP_HELVETICA_12, buf);
+		}
+	}
 }
 
 void Scene::drawAxes()
@@ -874,23 +937,39 @@ void Scene::drawAxes()
 
 	glEnd();
 
+	drawAxisTicks();
+
 	glPopMatrix();
+}
+
+void Scene::applyPerspectiveProjection()
+{
+	gluPerspective(60.0f, float(WIDTH) / float(HEIGHT), 0.1f, 100.0f);
+}
+
+void Scene::applyOrthographicProjection()
+{
+	glOrtho(-5.0f, 5.0f, -5.0f, 5.0f, -5.f, 100.0f);
 }
 
 void Scene::draw()
 {
+	// set the background
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
+	// set the projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0f, float(WIDTH) / float(HEIGHT), 0.1f, 100.0f);
+	applyPerspectiveProjection();
 
+	// set the camera
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	this->camera->apply();
 
+	// lighting for colour
 	if (this->isColour)
 	{
 		glEnable(GL_LIGHTING);
@@ -905,6 +984,7 @@ void Scene::draw()
 		glDisable(GL_LIGHTING);
 	}
 
+	// start drawing/transform from data in memory
 	drawAxes();
 
 	for (Object *object : objects)
@@ -920,86 +1000,108 @@ void Scene::init()
 	this->load();
 
 	// set up the initial objects
-	Mesh *shape1 = this->meshes["1"];
-	MeshInstance *shape1MI = new MeshInstance(shape1);
-	shape1MI->setDefaultMaterial();
-	Object *fan = new Object();
-	fan->add(shape1MI);
-	fan->scale.set(1.5f, 0.25f, 1.5f);
-	fan->position.set(-4.0, 0.0f, -4.0f);
+	// Mesh *shape1 = this->meshes["1"];
+	// MeshInstance *shape1MI = new MeshInstance(shape1);
+	// shape1MI->setDefaultMaterial();
+	// Object *fan = new Object();
+	// fan->add(shape1MI);
+	// fan->scale.set(1.5f, 0.25f, 1.5f);
+	// fan->position.set(-4.0, 0.0f, -4.0f);
 
-	Mesh *shape2 = this->meshes["2"];
-	MeshInstance *shape2MI = new MeshInstance(shape2);
-	shape2MI->setDefaultMaterial();
-	Object *wheel = new Object();
-	wheel->add(shape2MI);
-	wheel->position.set(2.0f, 0.0f, 2.0f);
-	wheel->scale.set(1.0f, 0.25f, 1.0f);
-	wheel->rotation.set(0.0, 0.0f, 0.0f);
+	// Mesh *shape2 = this->meshes["2"];
+	// MeshInstance *shape2MI = new MeshInstance(shape2);
+	// shape2MI->setDefaultMaterial();
+	// Object *wheel = new Object();
+	// wheel->add(shape2MI);
+	// wheel->position.set(2.0f, 0.0f, 2.0f);
+	// wheel->scale.set(1.0f, 0.25f, 1.0f);
+	// wheel->rotation.set(0.0, 0.0f, 0.0f);
 
-	Mesh *shape3 = this->meshes["3"];
-	MeshInstance *shape3MI = new MeshInstance(shape3);
-	shape3MI->setDefaultMaterial();
-	Object *magicBox = new Object();
-	magicBox->add(shape3MI);
-	magicBox->scale.set(1.0f, 0.4f, 1.0f);
-	magicBox->rotation.set(0.0f, 30.0f, 0.0f);
-	magicBox->position.set(1.0f, 0.0f, 5.0f);
+	// Mesh *shape3 = this->meshes["3"];
+	// MeshInstance *shape3MI = new MeshInstance(shape3);
+	// shape3MI->setDefaultMaterial();
+	// Object *magicBox = new Object();
+	// magicBox->add(shape3MI);
+	// magicBox->scale.set(1.0f, 0.4f, 1.0f);
+	// magicBox->rotation.set(0.0f, 30.0f, 0.0f);
+	// magicBox->position.set(1.0f, 0.0f, 5.0f);
 
-	Mesh *shape4 = this->meshes["4"];
-	MeshInstance *shape4MI = new MeshInstance(shape4);
-	shape4MI->setDefaultMaterial();
-	Object *longTunnel = new Object();
-	longTunnel->add(shape4MI);
-	longTunnel->scale.set(1.0f, 2.0f, 1.0f);
-	longTunnel->position.set(-3.0f, 0.0f, 3.0f);
+	// Mesh *shape4 = this->meshes["4"];
+	// MeshInstance *shape4MI = new MeshInstance(shape4);
+	// shape4MI->setDefaultMaterial();
+	// Object *longTunnel = new Object();
+	// longTunnel->add(shape4MI);
+	// longTunnel->scale.set(1.0f, 2.0f, 1.0f);
+	// longTunnel->position.set(-3.0f, 0.0f, 3.0f);
 
-	Mesh *shape5 = this->meshes["5"];
-	MeshInstance *shape5MI = new MeshInstance(shape5);
-	shape5MI->setDefaultMaterial();
-	Object *longTube = new Object();
-	longTube->add(shape5MI);
-	longTube->scale.set(0.5f, 5.0f, 0.5f);
-	longTube->position.set(2.0f, 0.0f, -4.0f);
+	// Mesh *shape5 = this->meshes["5"];
+	// MeshInstance *shape5MI = new MeshInstance(shape5);
+	// shape5MI->setDefaultMaterial();
+	// Object *longTube = new Object();
+	// longTube->add(shape5MI);
+	// longTube->scale.set(0.5f, 5.0f, 0.5f);
+	// longTube->position.set(2.0f, 0.0f, -4.0f);
 
-	Mesh *cube = this->meshes["cube"];
-	MeshInstance *cubeMI = new MeshInstance(cube);
-	cubeMI->setDefaultMaterial();
-	Object *cubeObj = new Object();
-	cubeObj->add(cubeMI);
-	cubeObj->scale.set(0.5f, 0.5f, 0.5f);
-	cubeObj->position.set(-3.0f, 0.0f, -3.0f);
+	// Mesh *cube = this->meshes["cube"];
+	// MeshInstance *cubeMI = new MeshInstance(cube);
+	// cubeMI->setDefaultMaterial();
+	// Object *cubeObj = new Object();
+	// cubeObj->add(cubeMI);
+	// cubeObj->scale.set(0.5f, 0.5f, 0.5f);
+	// cubeObj->position.set(-3.0f, 0.0f, -3.0f);
 
-	Mesh *cylinder = this->meshes["cylinder"];
-	MeshInstance *cylinder1MI = new MeshInstance(cylinder);
+	// Mesh *cylinder = this->meshes["cylinder"];
+	// MeshInstance *cylinder1MI = new MeshInstance(cylinder);
 
-	Material *materialCylinder = new Material();
-	materialCylinder->ambient.set(0.1f, 0.1f, 0.1f, 1.0f);
-	materialCylinder->diffuse.set(0.0f, 0.8f, 0.0f, 1.0f);
-	materialCylinder->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
-	materialCylinder->emission.set(0.0f, 0.0f, 0.0f, 1.0f);
-	materialCylinder->shininess = 80.0f;
-	cylinder1MI->setMaterial(materialCylinder);
+	// Material *materialCylinder = new Material();
+	// materialCylinder->ambient.set(0.1f, 0.1f, 0.1f, 1.0f);
+	// materialCylinder->diffuse.set(0.0f, 0.8f, 0.0f, 1.0f);
+	// materialCylinder->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+	// materialCylinder->emission.set(0.0f, 0.0f, 0.0f, 1.0f);
+	// materialCylinder->shininess = 80.0f;
+	// cylinder1MI->setMaterial(materialCylinder);
 
-	Object *cyl = new Object();
+	// Object *cyl = new Object();
 
-	cyl->add(cylinder1MI);
-	cyl->scale.set(0.5f, 3.0f, 0.5f);
-	cyl->position.set(4.0f, 1.0f, 2.0f);
+	// cyl->add(cylinder1MI);
+	// cyl->scale.set(0.5f, 3.0f, 0.5f);
+	// cyl->position.set(4.0f, 1.0f, 2.0f);
 
-	// add objects to the initial scene
-	this->add(cubeObj);
-	this->add(longTunnel);
-	this->add(longTube);
-	this->add(fan);
-	this->add(wheel);
-	this->add(cyl);
-	this->add(magicBox);
+	// // add objects to the initial scene
+	// this->add(cubeObj);
+	// this->add(longTunnel);
+	// this->add(longTube);
+	// this->add(fan);
+	// this->add(wheel);
+	// this->add(cyl);
+	// this->add(magicBox);
+
+	// set up the system
+	Object *obj = new Object();
+
+	// 1. slider
+	Mesh *m1 = this->meshes["cube"];
+	MeshInstance *mi1 = new MeshInstance(m1);
+	mi1->localScale.set(0.25f, 2.0f, 0.25f);
+	mi1->localPosition.set(0.0f, 2.0f, 0.0f);
+
+	Mesh *m2 = this->meshes["2"];
+	MeshInstance *mi2 = new MeshInstance(m2);
+	mi2->localScale.set(1.0f, 0.4f, 1.0f);
+	// mi2->localRotation.set(90, 0.0f, 0.0f);
+	// mi2->localPosition.set(0.0f, 2.0f, 0.0f);
+
+	// add instance to object
+	obj->add(mi1);
+	obj->add(mi2);
+
+	// Add the object to the scene
+	this->objects.push_back(obj);
 
 	// set up initial camera
-	float angle = M_PI / 2;
-	float height = 0.0f;
-	float radius = 7.0f;
+	float angle = M_PI / 4;
+	float height = 3.0f;
+	float radius = 8.0f;
 
 	this->camera->angle = angle;
 	this->camera->height = height;
@@ -1021,7 +1123,7 @@ void Scene::load()
 	this->meshes["cube"] = MeshFactory::cube();
 	this->meshes["cylinder"] = MeshFactory::cylinder(360);
 	this->meshes["1"] = MeshFactory::buildShape1(1.2f, 360, 45, 134);
-	this->meshes["2"] = MeshFactory::buildShape2(1.2f, 360, 45, 134, 0.2f);
+	this->meshes["2"] = MeshFactory::buildShape2(1.5f, 72, 9, 26, 0.2f, 2);
 	this->meshes["3"] = MeshFactory::buildShape3(0.8f);
 	this->meshes["4"] = MeshFactory::buildShape4(0.8f, 0.8f);
 	this->meshes["5"] = MeshFactory::buildShape5(0.9f, 0.9f);
