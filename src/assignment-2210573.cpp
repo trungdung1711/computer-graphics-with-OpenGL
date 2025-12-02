@@ -123,6 +123,9 @@ const float *Vector4::data() const
 
 // ###########################################################
 // ###########################################################
+int WINDOW_X = 1200;
+int WINDOW_Y = 0;
+
 int WIDTH = 800;
 int HEIGHT = 800;
 const char *ID = "Le Bui Trung Dung - 2210573";
@@ -1082,18 +1085,31 @@ void Scene::init()
 	// 1. slider
 	Mesh *m1 = this->meshes["cube"];
 	MeshInstance *mi1 = new MeshInstance(m1);
-	mi1->localScale.set(0.25f, 2.0f, 0.25f);
-	mi1->localPosition.set(0.0f, 2.0f, 0.0f);
+	mi1->localScale.set(0.3f, 3.0f, 0.3f);
+	mi1->localPosition.set(0.0f, 1.5f + 1.5f + 0.2f, 0.0f);
 
 	Mesh *m2 = this->meshes["2"];
 	MeshInstance *mi2 = new MeshInstance(m2);
-	mi2->localScale.set(1.0f, 0.4f, 1.0f);
-	// mi2->localRotation.set(90, 0.0f, 0.0f);
-	// mi2->localPosition.set(0.0f, 2.0f, 0.0f);
+	mi2->localScale.set(1.0f, 0.3f, 1.0f);
+	mi2->localRotation.set(-90.0f, 0.0f, 0.0f);
+	// mi2->localPosition.set(0.0f, -1.5f - 0.2f, 0.0f);
+
+	// this mesh will be reused in different MeshInstance
+	Mesh *cylinder = this->meshes["cylinder"];
+	MeshInstance *mi3 = new MeshInstance(cylinder);
+	mi3->localScale.set(0.15f, 1.0f, 0.15f);
+	mi3->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi3->localPosition.set((1.0f + 0.2f + 0.15f) * std::cos(M_PI / 3), (1.0f + 0.2f + 0.15f) * sin(M_PI / 3), 0.0f);
+	MeshInstance *mi4 = new MeshInstance(cylinder);
+	mi4->localScale.set(0.15f, 1.0f, 0.15f);
+	mi4->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi4->localPosition.set((1.0f + 0.2f + 0.15f) * std::cos(2 * M_PI / 3), (1.0f + 0.2f + 0.15f) * sin(2 * M_PI / 3), 0.0f);
 
 	// add instance to object
 	obj->add(mi1);
 	obj->add(mi2);
+	obj->add(mi3);
+	obj->add(mi4);
 
 	// Add the object to the scene
 	this->objects.push_back(obj);
@@ -1121,7 +1137,7 @@ void Scene::load()
 	// should generalize to name
 	// update based on scene
 	this->meshes["cube"] = MeshFactory::cube();
-	this->meshes["cylinder"] = MeshFactory::cylinder(360);
+	this->meshes["cylinder"] = MeshFactory::cylinder(72);
 	this->meshes["1"] = MeshFactory::buildShape1(1.2f, 360, 45, 134);
 	this->meshes["2"] = MeshFactory::buildShape2(1.5f, 72, 9, 26, 0.2f, 2);
 	this->meshes["3"] = MeshFactory::buildShape3(0.8f);
@@ -1382,7 +1398,7 @@ int main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(WIDTH, HEIGHT);
-	glutInitWindowPosition(100, 100);
+	glutInitWindowPosition(WINDOW_X, WINDOW_Y);
 	glutCreateWindow(ID);
 
 	// init game
