@@ -492,13 +492,13 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 		// loop idx2 - idx1 + 1
 		if (i >= idx1 && i <= (idx2 + 1))
 		{
-			vertices[i - idx1] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]);
-			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f + size) * std::cos(alpha), -0.5f, (1.0f + size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i - idx1] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), -0.5f, (1.0f - size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f) * std::cos(alpha), -0.5f, (1.0f) * std::sin(alpha)), COLORMAP[0]);
 			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), COLORMAP[0]);
 			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
 
-			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f + size) * std::cos(alpha), 0.5f, (1.0f + size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), 0.5f, (1.0f - size) * std::sin(alpha)), COLORMAP[0]);
+			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f) * std::cos(alpha), 0.5f, (1.0f) * std::sin(alpha)), COLORMAP[0]);
 			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), COLORMAP[0]);
 			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
 		}
@@ -1000,84 +1000,8 @@ void Scene::draw()
 
 void Scene::init()
 {
+	// load and build memory for meshes
 	this->load();
-
-	// set up the initial objects
-	// Mesh *shape1 = this->meshes["1"];
-	// MeshInstance *shape1MI = new MeshInstance(shape1);
-	// shape1MI->setDefaultMaterial();
-	// Object *fan = new Object();
-	// fan->add(shape1MI);
-	// fan->scale.set(1.5f, 0.25f, 1.5f);
-	// fan->position.set(-4.0, 0.0f, -4.0f);
-
-	// Mesh *shape2 = this->meshes["2"];
-	// MeshInstance *shape2MI = new MeshInstance(shape2);
-	// shape2MI->setDefaultMaterial();
-	// Object *wheel = new Object();
-	// wheel->add(shape2MI);
-	// wheel->position.set(2.0f, 0.0f, 2.0f);
-	// wheel->scale.set(1.0f, 0.25f, 1.0f);
-	// wheel->rotation.set(0.0, 0.0f, 0.0f);
-
-	// Mesh *shape3 = this->meshes["3"];
-	// MeshInstance *shape3MI = new MeshInstance(shape3);
-	// shape3MI->setDefaultMaterial();
-	// Object *magicBox = new Object();
-	// magicBox->add(shape3MI);
-	// magicBox->scale.set(1.0f, 0.4f, 1.0f);
-	// magicBox->rotation.set(0.0f, 30.0f, 0.0f);
-	// magicBox->position.set(1.0f, 0.0f, 5.0f);
-
-	// Mesh *shape4 = this->meshes["4"];
-	// MeshInstance *shape4MI = new MeshInstance(shape4);
-	// shape4MI->setDefaultMaterial();
-	// Object *longTunnel = new Object();
-	// longTunnel->add(shape4MI);
-	// longTunnel->scale.set(1.0f, 2.0f, 1.0f);
-	// longTunnel->position.set(-3.0f, 0.0f, 3.0f);
-
-	// Mesh *shape5 = this->meshes["5"];
-	// MeshInstance *shape5MI = new MeshInstance(shape5);
-	// shape5MI->setDefaultMaterial();
-	// Object *longTube = new Object();
-	// longTube->add(shape5MI);
-	// longTube->scale.set(0.5f, 5.0f, 0.5f);
-	// longTube->position.set(2.0f, 0.0f, -4.0f);
-
-	// Mesh *cube = this->meshes["cube"];
-	// MeshInstance *cubeMI = new MeshInstance(cube);
-	// cubeMI->setDefaultMaterial();
-	// Object *cubeObj = new Object();
-	// cubeObj->add(cubeMI);
-	// cubeObj->scale.set(0.5f, 0.5f, 0.5f);
-	// cubeObj->position.set(-3.0f, 0.0f, -3.0f);
-
-	// Mesh *cylinder = this->meshes["cylinder"];
-	// MeshInstance *cylinder1MI = new MeshInstance(cylinder);
-
-	// Material *materialCylinder = new Material();
-	// materialCylinder->ambient.set(0.1f, 0.1f, 0.1f, 1.0f);
-	// materialCylinder->diffuse.set(0.0f, 0.8f, 0.0f, 1.0f);
-	// materialCylinder->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
-	// materialCylinder->emission.set(0.0f, 0.0f, 0.0f, 1.0f);
-	// materialCylinder->shininess = 80.0f;
-	// cylinder1MI->setMaterial(materialCylinder);
-
-	// Object *cyl = new Object();
-
-	// cyl->add(cylinder1MI);
-	// cyl->scale.set(0.5f, 3.0f, 0.5f);
-	// cyl->position.set(4.0f, 1.0f, 2.0f);
-
-	// // add objects to the initial scene
-	// this->add(cubeObj);
-	// this->add(longTunnel);
-	// this->add(longTube);
-	// this->add(fan);
-	// this->add(wheel);
-	// this->add(cyl);
-	// this->add(magicBox);
 
 	// set up the system
 	Object *obj = new Object();
@@ -1086,30 +1010,81 @@ void Scene::init()
 	Mesh *m1 = this->meshes["cube"];
 	MeshInstance *mi1 = new MeshInstance(m1);
 	mi1->localScale.set(0.3f, 3.0f, 0.3f);
-	mi1->localPosition.set(0.0f, 1.5f + 1.5f + 0.2f, 0.0f);
+	mi1->localPosition.set(0.0f, 1.5f + 1.5f, 0.0f);
 
+	// 弓のように
 	Mesh *m2 = this->meshes["2"];
 	MeshInstance *mi2 = new MeshInstance(m2);
 	mi2->localScale.set(1.0f, 0.3f, 1.0f);
 	mi2->localRotation.set(-90.0f, 0.0f, 0.0f);
-	// mi2->localPosition.set(0.0f, -1.5f - 0.2f, 0.0f);
 
-	// this mesh will be reused in different MeshInstance
-	Mesh *cylinder = this->meshes["cylinder"];
-	MeshInstance *mi3 = new MeshInstance(cylinder);
+	// ２つの如意きんこぼう
+	Mesh *m3 = this->meshes["cylinder"];
+	MeshInstance *mi3 = new MeshInstance(m3);
 	mi3->localScale.set(0.15f, 1.0f, 0.15f);
 	mi3->localRotation.set(90.0f, 0.0f, 0.0f);
-	mi3->localPosition.set((1.0f + 0.2f + 0.15f) * std::cos(M_PI / 3), (1.0f + 0.2f + 0.15f) * sin(M_PI / 3), 0.0f);
-	MeshInstance *mi4 = new MeshInstance(cylinder);
+	mi3->localPosition.set((1.0f + 0.15f) * std::cos(M_PI / 3), (1.0f + 0.15f) * sin(M_PI / 3), 0.0f);
+	MeshInstance *mi4 = new MeshInstance(m3);
 	mi4->localScale.set(0.15f, 1.0f, 0.15f);
 	mi4->localRotation.set(90.0f, 0.0f, 0.0f);
-	mi4->localPosition.set((1.0f + 0.2f + 0.15f) * std::cos(2 * M_PI / 3), (1.0f + 0.2f + 0.15f) * sin(2 * M_PI / 3), 0.0f);
+	mi4->localPosition.set((1.0f + 0.15f) * std::cos(2 * M_PI / 3), (1.0f + 0.15f) * sin(2 * M_PI / 3), 0.0f);
+
+	// 2. パンみたい
+	Mesh *m4 = this->meshes["4"];
+	MeshInstance *mi5 = new MeshInstance(m4);
+	mi5->localScale.set(3.0f / 8.0f, 1.0f, 3.0f / 8.0f);
+	mi5->localPosition.set(0.0f, 3.0f, 0.0f);
+
+	// 3. Attach to pan
+	MeshInstance *mi6 = new MeshInstance(m1);
+	mi6->localScale.set(3.0f / 8.0f, 1.0f, 0.5f);
+	mi6->localPosition.set(0.0f, 3.0f, 3.0f / 16.0f + 0.25f);
+
+	// 孫の手みたい
+	Mesh *m5 = this->meshes["5"];
+	MeshInstance *mi7 = new MeshInstance(m5);
+	mi7->localScale.set(3.0f / 8.0f, 3.3f, 0.3f);
+	mi7->localPosition.set(0.0f, 3.5f - (3.3f / 2), 3.0f / 16.0f + 0.5f + 0.15f);
+
+	// the weird wheel
+	Mesh *m6 = this->meshes["1"];
+	MeshInstance *mi8 = new MeshInstance(m6);
+	mi8->localScale.set(1.0f, 0.2f, 1.0f);
+	mi8->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi8->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f - 0.4f / 2 - 0.15f / 2.0f - 0.1f - 0.15f / 2);
+
+	// short and tall attached to the wheel
+	MeshInstance *mi9 = new MeshInstance(m3);
+	mi9->localScale.set(0.3f, 0.15f, 0.3f);
+	mi9->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi9->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f - 0.4f / 2 - 0.15f / 2);
+	MeshInstance *mi10 = new MeshInstance(m3);
+	mi10->localScale.set(0.15f, 0.5f, 0.15f);
+	mi10->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi10->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f + 0.5f / 2 + 0.4f / 2);
+
+	// 武器みたい
+	Mesh *m7 = this->meshes["3"];
+	MeshInstance *mi11 = new MeshInstance(m7);
+	mi11->localScale.set(0.4f, 0.4f, 0.4f);
+	mi11->localRotation.set(90.0f, 0.0f, 0.0f);
+	mi11->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f);
 
 	// add instance to object
 	obj->add(mi1);
 	obj->add(mi2);
 	obj->add(mi3);
 	obj->add(mi4);
+	obj->add(mi5);
+	obj->add(mi6);
+	obj->add(mi7);
+	obj->add(mi8);
+	obj->add(mi9);
+	obj->add(mi10);
+	obj->add(mi11);
+
+	// change the obj
+	// obj->position.set(0.0f, 3.0f, 0.0f);
 
 	// Add the object to the scene
 	this->objects.push_back(obj);
@@ -1138,11 +1113,11 @@ void Scene::load()
 	// update based on scene
 	this->meshes["cube"] = MeshFactory::cube();
 	this->meshes["cylinder"] = MeshFactory::cylinder(72);
-	this->meshes["1"] = MeshFactory::buildShape1(1.2f, 360, 45, 134);
-	this->meshes["2"] = MeshFactory::buildShape2(1.5f, 72, 9, 26, 0.2f, 2);
-	this->meshes["3"] = MeshFactory::buildShape3(0.8f);
+	this->meshes["1"] = MeshFactory::buildShape1(1.5f, 72, 9, 26);
+	this->meshes["2"] = MeshFactory::buildShape2(1.3f, 72, 9, 26, 0.2f, 2);
+	this->meshes["3"] = MeshFactory::buildShape3(0.6);
 	this->meshes["4"] = MeshFactory::buildShape4(0.8f, 0.8f);
-	this->meshes["5"] = MeshFactory::buildShape5(0.9f, 0.9f);
+	this->meshes["5"] = MeshFactory::buildShape5(0.7f, 5.0f / 7.0f);
 }
 
 Scene::~Scene()
