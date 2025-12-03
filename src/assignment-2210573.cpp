@@ -644,9 +644,9 @@ void MeshInstance::draw(bool isColour = false)
 	// moving
 	glTranslatef(localPosition.x, localPosition.y, localPosition.z);
 	// rotating
-	glRotatef(localRotation.x, 1, 0, 0);
-	glRotatef(localRotation.y, 0, 1, 0);
 	glRotatef(localRotation.z, 0, 0, 1);
+	glRotatef(localRotation.y, 0, 1, 0);
+	glRotatef(localRotation.x, 1, 0, 0);
 	// scaling
 	glScalef(localScale.x, localScale.y, localScale.z);
 
@@ -831,6 +831,15 @@ public:
 	Camera *camera;
 	std::vector<Object *> objects;
 	std::map<std::string, Mesh *> meshes;
+	float theta0;
+
+	float point1;
+	float point2;
+	float point3;
+	float point4;
+
+	float vMove;
+
 	bool isColour;
 
 	Scene();
@@ -1046,7 +1055,7 @@ void Scene::init()
 	mi7->localScale.set(3.0f / 8.0f, 3.3f, 0.3f);
 	mi7->localPosition.set(0.0f, 3.5f - (3.3f / 2), 3.0f / 16.0f + 0.5f + 0.15f);
 
-	// the weird wheel
+	// ピザのようなもの
 	Mesh *m6 = this->meshes["1"];
 	MeshInstance *mi8 = new MeshInstance(m6);
 	mi8->localScale.set(1.0f, 0.2f, 1.0f);
@@ -1071,17 +1080,17 @@ void Scene::init()
 	mi11->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f);
 
 	// add instance to object
-	obj->add(mi1);
-	obj->add(mi2);
-	obj->add(mi3);
-	obj->add(mi4);
-	obj->add(mi5);
-	obj->add(mi6);
-	obj->add(mi7);
-	obj->add(mi8);
-	obj->add(mi9);
-	obj->add(mi10);
-	obj->add(mi11);
+	obj->add(mi1);	// 0 👆
+	obj->add(mi2);	// 1 👆
+	obj->add(mi3);	// 2 👆
+	obj->add(mi4);	// 3 👆
+	obj->add(mi5);	// 4
+	obj->add(mi6);	// 5
+	obj->add(mi7);	// 6
+	obj->add(mi8);	// 7
+	obj->add(mi9);	// 8
+	obj->add(mi10); // 9
+	obj->add(mi11); // 10
 
 	// change the obj
 	// obj->position.set(0.0f, 3.0f, 0.0f);
@@ -1089,10 +1098,24 @@ void Scene::init()
 	// Add the object to the scene
 	this->objects.push_back(obj);
 
+	// set up inial theta
+	this->theta0 = 0.0f;
+
+	float alpha = M_PI / 3.0f - std::asin(0.15f / 1.15f);
+	float beta = M_PI_2 - std::asin(1.15f * std::cos(M_PI / 3.0f) / 1.65f) - std::asin(0.15f / 1.65f);
+	this->point1 = M_PI_4 + alpha;
+	this->point2 = M_PI_4 + beta;
+	this->point3 = 5.0f * M_PI / 4.0f + M_PI_2 - beta;
+	this->point4 = 5.0f * M_PI / 4.0f + M_PI_2 - alpha;
+
+	float x = 1.15f * std::cos(M_PI / 3);
+	float deltaS = std::sqrt(std::pow(1.65f, 2) - std::pow(x, 2)) - std::sqrt(std::pow(1.15f, 2) - std::pow(x, 2));
+	float deltaA = beta - alpha;
+	this->vMove = this->camera->omega / deltaA * deltaS;
 	// set up initial camera
-	float angle = M_PI / 4;
-	float height = 3.0f;
-	float radius = 8.0f;
+	float angle = M_PI / 2;
+	float height = 0.0f;
+	float radius = 5.0f;
 
 	this->camera->angle = angle;
 	this->camera->height = height;
@@ -1113,8 +1136,8 @@ void Scene::load()
 	// update based on scene
 	this->meshes["cube"] = MeshFactory::cube();
 	this->meshes["cylinder"] = MeshFactory::cylinder(72);
-	this->meshes["1"] = MeshFactory::buildShape1(1.5f, 72, 9, 26);
-	this->meshes["2"] = MeshFactory::buildShape2(1.3f, 72, 9, 26, 0.2f, 2);
+	this->meshes["1"] = MeshFactory::buildShape1(1.5f, 72, 9 + 1 - 1, 26 + 1);
+	this->meshes["2"] = MeshFactory::buildShape2(1.3f, 72, 9, 26, 0.2f, 1);
 	this->meshes["3"] = MeshFactory::buildShape3(0.6);
 	this->meshes["4"] = MeshFactory::buildShape4(0.8f, 0.8f);
 	this->meshes["5"] = MeshFactory::buildShape5(0.7f, 5.0f / 7.0f);
@@ -1156,7 +1179,9 @@ public:
 		ACITON_MOVE_CAM_DOWN,
 		ACTION_MOVE_CAM_FORWARD,
 		ACTION_MOVE_CAM_BACKWARD,
-		ACTION_COLOUR
+		ACTION_COLOUR,
+		ACTION_MOVE_WHEEL,
+		ACTION_MOVE_WHEEL_COUNTER
 	};
 	Scene *scene;
 	double lastTime;
@@ -1166,6 +1191,7 @@ public:
 	void init();
 	void update();
 	void render();
+	void stupidMove(bool up, float delta);
 	~Game();
 };
 
@@ -1186,6 +1212,30 @@ void Game::init()
 
 	// init the initial scene and meshes
 	this->scene->init();
+}
+
+void Game::stupidMove(bool up, float delta)
+{
+
+	MeshInstance *part0 = this->scene->objects[0]->parts[0];
+	MeshInstance *part1 = this->scene->objects[0]->parts[1];
+	MeshInstance *part2 = this->scene->objects[0]->parts[2];
+	MeshInstance *part3 = this->scene->objects[0]->parts[3];
+
+	if (up)
+	{
+		part0->localPosition.y += delta;
+		part1->localPosition.y += delta;
+		part2->localPosition.y += delta;
+		part3->localPosition.y += delta;
+	}
+	else
+	{
+		part0->localPosition.y -= delta;
+		part1->localPosition.y -= delta;
+		part2->localPosition.y -= delta;
+		part3->localPosition.y -= delta;
+	}
 }
 
 void Game::update()
@@ -1251,6 +1301,63 @@ void Game::update()
 
 	this->scene->isColour = actions[ACTION_COLOUR];
 
+	// update the wheel
+	float velocity = this->scene->vMove - 0.15f;
+
+	if (this->scene->theta0 > 2 * M_PI)
+	{
+		this->scene->theta0 = 0.0f;
+	}
+
+	if (this->scene->theta0 < 0.0f)
+	{
+		this->scene->theta0 = 2 * M_PI;
+	}
+
+	if (this->actions[ACTION_MOVE_WHEEL])
+	{
+		float delta = this->scene->camera->omega * dt * 180 / M_PI;
+		MeshInstance *wheel = this->scene->objects[0]->parts[7];
+
+		// change the local rotation along z axis
+		wheel->localRotation.z -= delta;
+		this->scene->theta0 += this->scene->camera->omega * dt;
+
+		if (this->scene->theta0 >= this->scene->point1 && this->scene->theta0 < this->scene->point2)
+		{
+			// system move up
+			stupidMove(true, velocity * dt);
+		}
+
+		if (this->scene->theta0 > this->scene->point3 && this->scene->theta0 < this->scene->point4)
+		{
+			// system move down
+			stupidMove(false, velocity * dt);
+		}
+	}
+
+	if (this->actions[ACTION_MOVE_WHEEL_COUNTER])
+	{
+		float delta = this->scene->camera->omega * dt * 180 / M_PI;
+		MeshInstance *wheel = this->scene->objects[0]->parts[7];
+
+		// change the local rotation along z axis
+		wheel->localRotation.z += delta;
+		this->scene->theta0 -= this->scene->camera->omega * dt;
+
+		if (this->scene->theta0 > this->scene->point1 && this->scene->theta0 < this->scene->point2)
+		{
+			// system stupid move down
+			stupidMove(false, velocity * dt);
+		}
+
+		if (this->scene->theta0 > this->scene->point3 && this->scene->theta0 < this->scene->point4)
+		{
+			// system move up
+			stupidMove(true, velocity * dt);
+		}
+	}
+
 	// update lastTime
 	this->lastTime = now;
 }
@@ -1308,6 +1415,12 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'W':
 		gGame.actions[Game::ACTION_COLOUR] = !gGame.actions[Game::ACTION_COLOUR];
 		break;
+	case '1':
+		gGame.actions[Game::ACTION_MOVE_WHEEL_COUNTER] = true;
+		break;
+	case '2':
+		gGame.actions[Game::ACTION_MOVE_WHEEL] = true;
+		break;
 	}
 }
 
@@ -1320,6 +1433,12 @@ void onKeyUp(unsigned char key, int x, int y)
 		break;
 	case '-':
 		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = false;
+		break;
+	case '1':
+		gGame.actions[Game::ACTION_MOVE_WHEEL_COUNTER] = false;
+		break;
+	case '2':
+		gGame.actions[Game::ACTION_MOVE_WHEEL] = false;
 		break;
 	}
 }
