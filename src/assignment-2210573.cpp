@@ -1071,17 +1071,17 @@ void Scene::init()
 	mi11->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f);
 
 	// add instance to object
-	obj->add(mi1);
-	obj->add(mi2);
-	obj->add(mi3);
-	obj->add(mi4);
-	obj->add(mi5);
-	obj->add(mi6);
-	obj->add(mi7);
-	obj->add(mi8);
-	obj->add(mi9);
-	obj->add(mi10);
-	obj->add(mi11);
+	obj->add(mi1);	// 0
+	obj->add(mi2);	// 1
+	obj->add(mi3);	// 2
+	obj->add(mi4);	// 3
+	obj->add(mi5);	// 4
+	obj->add(mi6);	// 5
+	obj->add(mi7);	// 6
+	obj->add(mi8);	// 7
+	obj->add(mi9);	// 8
+	obj->add(mi10); // 9
+	obj->add(mi11); // 10
 
 	// change the obj
 	// obj->position.set(0.0f, 3.0f, 0.0f);
@@ -1156,7 +1156,9 @@ public:
 		ACITON_MOVE_CAM_DOWN,
 		ACTION_MOVE_CAM_FORWARD,
 		ACTION_MOVE_CAM_BACKWARD,
-		ACTION_COLOUR
+		ACTION_COLOUR,
+		ACTION_MOVE_WHEEL,
+		ACTION_MOVE_WHEEL_COUNTER
 	};
 	Scene *scene;
 	double lastTime;
@@ -1251,6 +1253,26 @@ void Game::update()
 
 	this->scene->isColour = actions[ACTION_COLOUR];
 
+	// update the wheel
+	if (this->actions[ACTION_MOVE_WHEEL])
+	{
+
+		float delta = this->scene->camera->omega * dt * 180 / M_PI;
+		MeshInstance *wheel = this->scene->objects[0]->parts[7];
+
+		// change the local rotation along z axis
+		wheel->localRotation.y -= delta;
+	}
+
+	if (this->actions[ACTION_MOVE_WHEEL_COUNTER])
+	{
+		float delta = this->scene->camera->omega * dt * 180 / M_PI;
+		MeshInstance *wheel = this->scene->objects[0]->parts[7];
+
+		// change the local rotation along z axis
+		wheel->localRotation.y += delta;
+	}
+
 	// update lastTime
 	this->lastTime = now;
 }
@@ -1308,6 +1330,12 @@ void onKeyDown(unsigned char key, int x, int y)
 	case 'W':
 		gGame.actions[Game::ACTION_COLOUR] = !gGame.actions[Game::ACTION_COLOUR];
 		break;
+	case '1':
+		gGame.actions[Game::ACTION_MOVE_WHEEL_COUNTER] = true;
+		break;
+	case '2':
+		gGame.actions[Game::ACTION_MOVE_WHEEL] = true;
+		break;
 	}
 }
 
@@ -1320,6 +1348,12 @@ void onKeyUp(unsigned char key, int x, int y)
 		break;
 	case '-':
 		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = false;
+		break;
+	case '1':
+		gGame.actions[Game::ACTION_MOVE_WHEEL_COUNTER] = false;
+		break;
+	case '2':
+		gGame.actions[Game::ACTION_MOVE_WHEEL] = false;
 		break;
 	}
 }
