@@ -644,9 +644,9 @@ void MeshInstance::draw(bool isColour = false)
 	// moving
 	glTranslatef(localPosition.x, localPosition.y, localPosition.z);
 	// rotating
-	glRotatef(localRotation.x, 1, 0, 0);
-	glRotatef(localRotation.y, 0, 1, 0);
 	glRotatef(localRotation.z, 0, 0, 1);
+	glRotatef(localRotation.y, 0, 1, 0);
+	glRotatef(localRotation.x, 1, 0, 0);
 	// scaling
 	glScalef(localScale.x, localScale.y, localScale.z);
 
@@ -1261,7 +1261,7 @@ void Game::update()
 		MeshInstance *wheel = this->scene->objects[0]->parts[7];
 
 		// change the local rotation along z axis
-		wheel->localRotation.y -= delta;
+		wheel->localRotation.z -= delta;
 	}
 
 	if (this->actions[ACTION_MOVE_WHEEL_COUNTER])
@@ -1270,7 +1270,7 @@ void Game::update()
 		MeshInstance *wheel = this->scene->objects[0]->parts[7];
 
 		// change the local rotation along z axis
-		wheel->localRotation.y += delta;
+		wheel->localRotation.z += delta;
 	}
 
 	// update lastTime
