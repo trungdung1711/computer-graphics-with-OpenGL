@@ -23,6 +23,7 @@ public:
 	void normalize();
 	Vector3 cross(Vector3 &b);
 	float dot(Vector3 &b);
+	Vector3 operator+(Vector3 v);
 };
 
 Vector3::Vector3()
@@ -78,6 +79,11 @@ void Vector3::set(float x, float y, float z)
 	this->z = z;
 }
 
+Vector3 Vector3::operator+(Vector3 v)
+{
+	return Vector3(this->x + v.x, this->y + v.y, this->z + v.z);
+}
+
 class Vector4
 {
 public:
@@ -128,6 +134,7 @@ int WINDOW_Y = 0;
 
 int WIDTH = 800;
 int HEIGHT = 800;
+std::map<std::string, Vector3 *> COLORS;
 const char *ID = "Le Bui Trung Dung - 2210573";
 Vector3 *COLORMAP;
 
@@ -137,11 +144,16 @@ void globalInit()
 	COLORMAP[0] = {1.0f, 0.0f, 0.0f}; // red
 	COLORMAP[1] = {0.0f, 1.0f, 0.0f}; // green
 	COLORMAP[2] = {0.0f, 0.0f, 1.0f}; // blue
+	COLORS["red"] = new Vector3{1.0f, 0.0f, 0.0f};
 }
 
 void clean()
 {
 	delete[] COLORMAP;
+	for (auto color : COLORS)
+	{
+		delete color.second;
+	}
 }
 // ###########################################################
 // ###########################################################
@@ -274,7 +286,6 @@ void Mesh::drawColor()
 		{
 			// get the vertex from the set of vertex
 			Vertex *v = vertices[idx];
-			// glColor3f(v->color.x, v->color.y, v->color.z);
 			glNormal3f(v->normal.x, v->normal.y, v->normal.z);
 			glVertex3f(v->position.x, v->position.y, v->position.z);
 		}
@@ -309,14 +320,15 @@ public:
 Mesh *MeshFactory::cube()
 {
 	std::vector<Vertex *> vertices = {
-		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[1]),
-		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[2]),
-		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[1]),
-		new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[2]),
-		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[1]),
+		new Vertex(Vector3(0.5f, -0.5f, -0.5f), Vector3(0.577f, -0.577f, -0.577f)),
+		new Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector3(0.577f, -0.577f, 0.577f)),
+		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector3(-0.577f, -0.577f, 0.577f)),
+		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), Vector3(-0.577f, -0.577f, -0.577f)),
+		new Vertex(Vector3(0.5f, 0.5f, -0.5f), Vector3(0.577f, 0.577f, -0.577f)),
+		new Vertex(Vector3(0.5f, 0.5f, 0.5f), Vector3(0.577f, 0.577f, 0.577f)),
+		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), Vector3(-0.577f, 0.577f, 0.577f)),
+		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), Vector3(-0.577f, 0.577f, -0.577f)),
+
 	};
 
 	std::vector<std::vector<int>> faces = {
@@ -425,13 +437,17 @@ Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
 	float dt = 2 * M_PI / n;
 	for (int i = 0; i < n; ++i)
 	{
+		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
+		Vector3 bottomFaceNormal(0.0f, -1.0f, 0.0f);
+		Vector3 normal = sideNormal + bottomFaceNormal;
+		normal.normalize();
 		if (i >= idx1 && i <= idx2)
 		{
-			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), COLORMAP[0]));
+			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), normal));
 		}
 		else
 		{
-			vertices.push_back(new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), COLORMAP[0]));
+			vertices.push_back(new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), normal));
 		}
 		alpha += dt;
 	}
@@ -439,13 +455,17 @@ Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
 	alpha = 0.0f;
 	for (int i = 0; i < n; ++i)
 	{
+		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
+		Vector3 topFacenormal(0.0f, 1.0f, 0.0f);
+		Vector3 normal = sideNormal + topFacenormal;
+		normal.normalize();
 		if (i >= idx1 && i <= idx2)
 		{
-			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), COLORMAP[0]));
+			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), normal));
 		}
 		else
 		{
-			vertices.push_back(new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), COLORMAP[0]));
+			vertices.push_back(new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), normal));
 		}
 		alpha += dt;
 	}
@@ -461,7 +481,7 @@ Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
 
 	for (int i = n; i < 2 * n; ++i)
 	{
-		std::vector<int> face = {i, 2 * n + 1, (i + 1) % (2 * n)};
+		std::vector<int> face = {i, 2 * n + 1, (i + 1) % n + n};
 		faces.push_back(face);
 	}
 
@@ -592,16 +612,26 @@ Mesh *MeshFactory::cylinder(int n)
 	std::vector<std::vector<int>> faces;
 	vertices.resize(n + n + 1 + 1);
 
+	Vector3 bottomCenterNormal(0.0f, -1.0f, 0.0f);
+	Vector3 topCenterNormal(0.0f, 1.0f, 0.0f);
+
 	for (int i = 0; i < n; ++i)
 	{
 		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
-		vertices[i] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), sideNormal);
-		vertices[i + n] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), sideNormal);
+
+		Vector3 bottomVertexNormal = sideNormal + bottomCenterNormal;
+		bottomVertexNormal.normalize();
+		vertices[i] = new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), bottomVertexNormal);
+
+		Vector3 topVertexNormal = sideNormal + topCenterNormal;
+		topVertexNormal.normalize();
+		vertices[i + n] = new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), topVertexNormal);
+
 		alpha += delta;
 	}
 
-	vertices[2 * n] = new Vertex(Vector3(0.0f, -0.5f, 0.0f), Vector3(0.0f, -1.0f, 0.0f));
-	vertices[2 * n + 1] = new Vertex(Vector3(0.0f, 0.5f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
+	vertices[2 * n] = new Vertex(Vector3(0.0f, -0.5f, 0.0f), bottomCenterNormal);
+	vertices[2 * n + 1] = new Vertex(Vector3(0.0f, 0.5f, 0.0f), topCenterNormal);
 
 	for (int i = 0; i < n; ++i)
 	{
@@ -652,7 +682,12 @@ void MeshInstance::draw(bool isColour = false)
 
 	if (isColour)
 	{
-		this->material->apply();
+		if (this->material != nullptr)
+			this->material->apply();
+		else
+		{
+			isColour = false;
+		}
 	}
 	mesh->draw(isColour);
 
@@ -1016,10 +1051,20 @@ void Scene::init()
 	Object *obj = new Object();
 
 	// 1. slider
+	// mesh
 	Mesh *m1 = this->meshes["cube"];
+	// instance
 	MeshInstance *mi1 = new MeshInstance(m1);
 	mi1->localScale.set(0.3f, 3.0f, 0.3f);
 	mi1->localPosition.set(0.0f, 1.5f + 1.5f, 0.0f);
+	// material
+	Material *material1 = new Material();
+	material1->ambient = Vector4(0.0f, 0.2f, 0.0f, 1.0f);
+	material1->diffuse = Vector4(0.1f, 0.6f, 0.1f, 1.0f);
+	material1->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material1->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material1->shininess = 60.0f;
+	mi1->setMaterial(material1);
 
 	// 弓のように
 	Mesh *m2 = this->meshes["2"];
@@ -1028,7 +1073,9 @@ void Scene::init()
 	mi2->localRotation.set(-90.0f, 0.0f, 0.0f);
 
 	// ２つの如意きんこぼう
+	// mesh
 	Mesh *m3 = this->meshes["cylinder"];
+	// instance
 	MeshInstance *mi3 = new MeshInstance(m3);
 	mi3->localScale.set(0.15f, 1.0f, 0.15f);
 	mi3->localRotation.set(90.0f, 0.0f, 0.0f);
@@ -1037,6 +1084,15 @@ void Scene::init()
 	mi4->localScale.set(0.15f, 1.0f, 0.15f);
 	mi4->localRotation.set(90.0f, 0.0f, 0.0f);
 	mi4->localPosition.set((1.0f + 0.15f) * std::cos(2 * M_PI / 3), (1.0f + 0.15f) * sin(2 * M_PI / 3), 0.0f);
+	// material
+	Material *material2 = new Material();
+	material2->ambient = Vector4(0.2f, 0.2f, 0.0f, 1.0f);
+	material2->diffuse = Vector4(0.8f, 0.8f, 0.1f, 1.0f);
+	material2->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material2->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material2->shininess = 50.0f;
+	mi3->setMaterial(material2);
+	mi4->setMaterial(material2);
 
 	// 2. パンみたい
 	Mesh *m4 = this->meshes["4"];
@@ -1044,10 +1100,19 @@ void Scene::init()
 	mi5->localScale.set(3.0f / 8.0f, 1.0f, 3.0f / 8.0f);
 	mi5->localPosition.set(0.0f, 3.0f, 0.0f);
 
-	// 3. Attach to pan
+	// 3. パンの隣
+	// instance
 	MeshInstance *mi6 = new MeshInstance(m1);
 	mi6->localScale.set(3.0f / 8.0f, 1.0f, 0.5f);
 	mi6->localPosition.set(0.0f, 3.0f, 3.0f / 16.0f + 0.25f);
+	// material
+	Material *material6 = new Material();
+	material6->ambient = Vector4(0.1f, 0.1f, 0.3f, 1.0f);
+	material6->diffuse = Vector4(0.0f, 0.1f, 0.9f, 1.0f);
+	material6->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material6->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material6->shininess = 70.0f;
+	mi6->setMaterial(material6);
 
 	// 孫の手みたい
 	Mesh *m5 = this->meshes["5"];
@@ -1056,21 +1121,49 @@ void Scene::init()
 	mi7->localPosition.set(0.0f, 3.5f - (3.3f / 2), 3.0f / 16.0f + 0.5f + 0.15f);
 
 	// ピザのようなもの
+	// mesh
 	Mesh *m6 = this->meshes["1"];
+	// instance
 	MeshInstance *mi8 = new MeshInstance(m6);
 	mi8->localScale.set(1.0f, 0.2f, 1.0f);
 	mi8->localRotation.set(90.0f, 0.0f, 0.0f);
 	mi8->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f - 0.4f / 2 - 0.15f / 2.0f - 0.1f - 0.15f / 2);
+	// material
+	Material *material3 = new Material();
+	material3->ambient = Vector4(0.3f, 0.0f, 0.1f, 1.0f);
+	material3->diffuse = Vector4(0.9f, 0.0f, 0.0f, 1.0f);
+	material3->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material3->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material3->shininess = 10.0f;
+	mi8->setMaterial(material3);
 
-	// short and tall attached to the wheel
+	// また２つの如意きんこぼう
+	// instance
 	MeshInstance *mi9 = new MeshInstance(m3);
 	mi9->localScale.set(0.3f, 0.15f, 0.3f);
 	mi9->localRotation.set(90.0f, 0.0f, 0.0f);
 	mi9->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f - 0.4f / 2 - 0.15f / 2);
+	// material
+	Material *material5 = new Material();
+	material5->ambient = Vector4(0.3f, 0.0f, 0.1f, 1.0f);
+	material5->diffuse = Vector4(0.9f, 0.0f, 0.0f, 1.0f);
+	material5->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material5->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material5->shininess = 60.0f;
+	mi9->setMaterial(material5);
+	// instance
 	MeshInstance *mi10 = new MeshInstance(m3);
 	mi10->localScale.set(0.15f, 0.5f, 0.15f);
 	mi10->localRotation.set(90.0f, 0.0f, 0.0f);
 	mi10->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f + 0.5f / 2 + 0.4f / 2);
+	// material
+	Material *material4 = new Material();
+	material4->ambient = Vector4(0.3f, 0.0f, 0.1f, 1.0f);
+	material4->diffuse = Vector4(0.9f, 0.0f, 0.0f, 1.0f);
+	material4->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material4->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material4->shininess = 60.0f;
+	mi10->setMaterial(material4);
 
 	// 武器みたい
 	Mesh *m7 = this->meshes["3"];
@@ -1302,7 +1395,7 @@ void Game::update()
 	this->scene->isColour = actions[ACTION_COLOUR];
 
 	// update the wheel
-	float velocity = this->scene->vMove - 0.15f;
+	float velocity = this->scene->vMove - 0.04f - 0.01f - 0.01f + 0.01f + 0.01f;
 
 	if (this->scene->theta0 > 2 * M_PI)
 	{
