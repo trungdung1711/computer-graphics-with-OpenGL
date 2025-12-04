@@ -1327,27 +1327,31 @@ void Scene::drawSegment(bool v, float x, float y, float w, float h)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glColor4f(1.0f, 0.0f, 0.0f, 0.7f);
 
+	glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+
+	float slant = (v ? w : h) * 0.3f;
+
+	glBegin(GL_POLYGON);
 	if (v)
 	{
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x, y + h);
-		glVertex2f(x + w, y + h);
-		glVertex2f(x + w, y);
-
-		glEnd();
+		glVertex2f(x + slant, y);		  // bottom-left (slanted)
+		glVertex2f(x + w - slant, y);	  // bottom-right
+		glVertex2f(x + w, y + h / 2);	  // right-middle
+		glVertex2f(x + w - slant, y + h); // top-right
+		glVertex2f(x + slant, y + h);	  // top-left
+		glVertex2f(x, y + h / 2);		  // left-middle
 	}
 	else
 	{
-		glBegin(GL_QUADS);
-		glVertex2f(x, y);
-		glVertex2f(x + w, y);
-		glVertex2f(x + w, y + h);
-		glVertex2f(x, y + h);
-		glEnd();
+		glVertex2f(x, y + slant);		  // left-bottom
+		glVertex2f(x + w / 2, y);		  // bottom-middle
+		glVertex2f(x + w, y + slant);	  // right-bottom
+		glVertex2f(x + w, y + h - slant); // right-top
+		glVertex2f(x + w / 2, y + h);	  // top-middle
+		glVertex2f(x, y + h - slant);	  // left-top
 	}
+	glEnd();
 }
 
 void Scene::drawDigit(int num, float x, float y)
@@ -1938,19 +1942,19 @@ void Game::update()
 
 void Game::render()
 {
-	float clockWidth = WIDTH * 0.25f;
-	float clockHeight = HEIGHT * 0.08f;
+	float clockWidth = WIDTH * 0.2f;
+	float clockHeight = HEIGHT * 0.07f;
 
 	float mainWidth = WIDTH - clockWidth;
 	float mainHeight = HEIGHT - clockHeight;
-	mainWidth = std::min(mainWidth, mainHeight);
+	mainWidth = std::max(mainWidth, mainHeight);
 	mainHeight = mainWidth;
 
 	glDisable(GL_SCISSOR_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glViewport(clockWidth, 0, mainWidth, mainHeight);
+	glViewport(clockHeight, 0, mainWidth, mainHeight);
 	if (actions[ACTION_2D])
 		this->scene->draw2d();
 	else
