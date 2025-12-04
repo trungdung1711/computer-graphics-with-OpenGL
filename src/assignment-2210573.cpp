@@ -171,6 +171,20 @@ std::map<std::string, Vector3 *> COLORS;
 const char *ID = "Le Bui Trung Dung - 2210573";
 Vector3 *COLORMAP;
 
+bool segments[10][7] = {
+	// A, B, C, D, E, F, G
+	{1, 1, 1, 1, 1, 1, 0}, // 0
+	{0, 1, 1, 0, 0, 0, 0}, // 1
+	{1, 1, 0, 1, 1, 0, 1}, // 2
+	{1, 1, 1, 1, 0, 0, 1}, // 3
+	{0, 1, 1, 0, 0, 1, 1}, // 4
+	{1, 0, 1, 1, 0, 1, 1}, // 5
+	{1, 0, 1, 1, 1, 1, 1}, // 6
+	{1, 1, 1, 0, 0, 0, 0}, // 7
+	{1, 1, 1, 1, 1, 1, 1}, // 8
+	{1, 1, 1, 1, 0, 1, 1}, // 9
+};
+
 void globalInit()
 {
 	COLORMAP = new Vector3[100];
@@ -911,9 +925,6 @@ void MeshInstance::draw(bool isColour = false)
 		this->material->apply();
 		glColor4f(this->material->diffuse.x, this->material->diffuse.y, this->material->diffuse.z, this->material->diffuse.w);
 	}
-	// ignored by default of lighting
-	// wire -> overwrite by default
-	// glColor4f(this->color.x, this->color.y, this->color.z, this->color.w);
 	mesh->draw(isColour);
 
 	glPopMatrix();
@@ -1119,6 +1130,10 @@ public:
 	void applyOrthographicProjection();
 	void draw();
 	void draw2d();
+	void drawSegment(bool v, float x, float y, float w, float h);
+	void drawDigit(int num, float x, float y);
+	void drawColon(float x, float y);
+	void drawClock();
 	void update();
 	void init();
 	void load();
@@ -1238,8 +1253,7 @@ void Scene::draw()
 	// std::cout << "3D " << this->isColour << "\n";
 	// std::cout << "3D\n";
 	// set the background
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	glEnable(GL_DEPTH_TEST);
 
 	// set the projection
@@ -1281,9 +1295,6 @@ void Scene::draw2d()
 	// std::cout << "2D " << this->isColour << "\n";
 	// std::cout << "2D" << "\n";
 	// parameters changed in the 3D mode doesn't affect it at all
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-
 	// set the projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -1309,6 +1320,114 @@ void Scene::draw2d()
 		// light is disable
 		o->draw(this->isColour);
 	}
+}
+
+void Scene::drawSegment(bool v, float x, float y, float w, float h)
+{
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glColor4f(1.0f, 0.0f, 0.0f, 0.7f);
+
+	if (v)
+	{
+		glBegin(GL_QUADS);
+		glVertex2f(x, y);
+		glVertex2f(x, y + h);
+		glVertex2f(x + w, y + h);
+		glVertex2f(x + w, y);
+
+		glEnd();
+	}
+	else
+	{
+		glBegin(GL_QUADS);
+		glVertex2f(x, y);
+		glVertex2f(x + w, y);
+		glVertex2f(x + w, y + h);
+		glVertex2f(x, y + h);
+		glEnd();
+	}
+}
+
+void Scene::drawDigit(int num, float x, float y)
+{
+	float W = 40;
+	float H = 80;
+	float T = 8;
+
+	bool *S = segments[num];
+
+	glPushMatrix();
+	glTranslatef(x, y, 0);
+
+	if (S[0])
+		drawSegment(false, T, H - T, W - 2 * T, T); // A
+	if (S[1])
+		drawSegment(true, W - T, H / 2, T, H / 2 - T); // B
+	if (S[2])
+		drawSegment(true, W - T, 0, T, H / 2 - T); // C
+	if (S[3])
+		drawSegment(false, T, 0, W - 2 * T, T); // D
+	if (S[4])
+		drawSegment(true, 0, 0, T, H / 2 - T); // E
+	if (S[5])
+		drawSegment(true, 0, H / 2, T, H / 2 - T); // F
+	if (S[6])
+		drawSegment(false, T, H / 2 - T / 2, W - 2 * T, T); // G
+
+	glPopMatrix();
+}
+
+void Scene::drawColon(float x, float y)
+{
+	glBegin(GL_QUADS);
+	glVertex2f(x, y + 40);
+	glVertex2f(x + 8, y + 40);
+	glVertex2f(x + 8, y + 48);
+	glVertex2f(x, y + 48);
+	glVertex2f(x, y + 10);
+	glVertex2f(x + 8, y + 10);
+	glVertex2f(x + 8, y + 18);
+	glVertex2f(x, y + 18);
+	glEnd();
+}
+
+void Scene::drawClock()
+{
+	glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_COLOR_MATERIAL);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(-250, 350, -60, 60);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	// get the current time
+	time_t now = time(0);
+	tm *t = localtime(&now);
+
+	int h = t->tm_hour;
+	int m = t->tm_min;
+	int s = t->tm_sec;
+
+	float y = -40;
+
+	drawDigit(h / 10, -180, y);
+	drawDigit(h % 10, -120, y);
+
+	drawColon(-45, y);
+
+	drawDigit(m / 10, 0, y);
+	drawDigit(m % 10, 60, y);
+
+	drawColon(135, y);
+
+	drawDigit(s / 10, 180, y);
+	drawDigit(s % 10, 240, y);
 }
 
 void Scene::init()
@@ -1817,25 +1936,37 @@ void Game::update()
 	this->lastTime = now;
 }
 
-// the main display function
 void Game::render()
 {
-	// map the whole viewport
-	glViewport(0, 0, WIDTH, HEIGHT);
-	// clear the screen
+	float clockWidth = WIDTH * 0.25f;
+	float clockHeight = HEIGHT * 0.08f;
+
+	float mainWidth = WIDTH - clockWidth;
+	float mainHeight = HEIGHT - clockHeight;
+	mainWidth = std::min(mainWidth, mainHeight);
+	mainHeight = mainWidth;
+
+	glDisable(GL_SCISSOR_TEST);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// drawing vertices to pixels
+	glViewport(clockWidth, 0, mainWidth, mainHeight);
 	if (actions[ACTION_2D])
-	{
 		this->scene->draw2d();
-	}
 	else
-	{
 		this->scene->draw();
-	}
 
-	// swap buffer
+	glViewport(0, HEIGHT - clockHeight, clockWidth, clockHeight);
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(0, HEIGHT - clockHeight, clockWidth, clockHeight);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	this->scene->drawClock();
+
+	glDisable(GL_SCISSOR_TEST);
+
 	glutSwapBuffers();
 }
 
