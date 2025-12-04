@@ -17,6 +17,7 @@ public:
 	Vector3();
 	Vector3(float x, float y, float z);
 	Vector3(Vector3 &v);
+	Vector3(const Vector3 &v);
 	void set(float x, float y, float z);
 	void set(Vector3 &v);
 	void flip();
@@ -24,6 +25,9 @@ public:
 	Vector3 cross(Vector3 &b);
 	float dot(Vector3 &b);
 	Vector3 operator+(Vector3 v);
+	Vector3 operator-(const Vector3 &v);
+	Vector3 &operator=(const Vector3 &v);
+	static Vector3 cross(Vector3 a, Vector3 b);
 };
 
 Vector3::Vector3()
@@ -82,6 +86,35 @@ void Vector3::set(float x, float y, float z)
 Vector3 Vector3::operator+(Vector3 v)
 {
 	return Vector3(this->x + v.x, this->y + v.y, this->z + v.z);
+}
+
+Vector3 Vector3::operator-(const Vector3 &v)
+{
+	return Vector3(this->x - v.x, this->y - v.y, this->z - v.z);
+}
+
+Vector3::Vector3(const Vector3 &v) : x{v.x}, y{v.y}, z{v.z}
+{
+}
+
+Vector3 &Vector3::operator=(const Vector3 &other)
+{
+	if (this != &other)
+	{
+		x = other.x;
+		y = other.y;
+		z = other.z;
+	}
+
+	return *this;
+}
+
+Vector3 Vector3::cross(Vector3 a, Vector3 b)
+{
+	return Vector3(
+		a.y * b.z - a.z * b.y,
+		a.z * b.x - a.x * b.z,
+		a.x * b.y - b.y * b.x);
 }
 
 class Vector4
@@ -319,26 +352,55 @@ public:
 
 Mesh *MeshFactory::cube()
 {
-	std::vector<Vertex *> vertices = {
-		new Vertex(Vector3(0.5f, -0.5f, -0.5f), Vector3(0.577f, -0.577f, -0.577f)),
-		new Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector3(0.577f, -0.577f, 0.577f)),
-		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector3(-0.577f, -0.577f, 0.577f)),
-		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), Vector3(-0.577f, -0.577f, -0.577f)),
-		new Vertex(Vector3(0.5f, 0.5f, -0.5f), Vector3(0.577f, 0.577f, -0.577f)),
-		new Vertex(Vector3(0.5f, 0.5f, 0.5f), Vector3(0.577f, 0.577f, 0.577f)),
-		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), Vector3(-0.577f, 0.577f, 0.577f)),
-		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), Vector3(-0.577f, 0.577f, -0.577f)),
+	std::vector<Vector3> P = {
+		{0.5f, -0.5f, -0.5f},  // 0
+		{0.5f, -0.5f, 0.5f},   // 1
+		{-0.5f, -0.5f, 0.5f},  // 2
+		{-0.5f, -0.5f, -0.5f}, // 3
 
+		{0.5f, 0.5f, -0.5f},  // 4
+		{0.5f, 0.5f, 0.5f},	  // 5
+		{-0.5f, 0.5f, 0.5f},  // 6
+		{-0.5f, 0.5f, -0.5f}, // 7
 	};
 
-	std::vector<std::vector<int>> faces = {
-		{0, 1, 2, 3},
-		{7, 6, 5, 4},
-		{4, 5, 1, 0},
-		{6, 7, 3, 2},
-		{5, 6, 2, 1},
-		{7, 4, 0, 3},
+	std::vector<std::vector<int>> F = {
+		{0, 1, 2, 3}, // bottom
+		{7, 6, 5, 4}, // top
+		{4, 5, 1, 0}, // +X
+		{6, 7, 3, 2}, // -X
+		{5, 6, 2, 1}, // +Z
+		{7, 4, 0, 3}  // -Z
 	};
+
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+
+	auto computeNormal = [&](Vector3 a, Vector3 b, Vector3 c)
+	{
+		Vector3 u = b - a;
+		Vector3 v = c - a;
+		Vector3 n = u.cross(v);
+		n.normalize();
+		return n;
+	};
+
+	for (auto &face : F)
+	{
+		Vector3 N = computeNormal(P[face[0]], P[face[1]], P[face[2]]);
+		// std::cout << "Normal: " << N.x << ", " << N.y << ", " << N.z << "\n";
+
+		std::vector<int> newFace;
+
+		for (int idx : face)
+		{
+			Vertex *v = new Vertex(P[idx], N);
+			vertices.push_back(v);
+			newFace.push_back(vertices.size() - 1);
+		}
+
+		faces.push_back(newFace);
+	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
@@ -348,47 +410,75 @@ Mesh *MeshFactory::cube()
 
 Mesh *MeshFactory::buildShape4(float a, float b)
 {
+	std::vector<Vector3> P = {
+		{0.5f, -0.5f, -0.5f},
+		{0.5f, -0.5f, 0.5f},
+		{-0.5f, -0.5f, 0.5f},
+		{-0.5f, -0.5f, -0.5f},
 
-	std::vector<Vertex *> vertices = {
-		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+		{a * 0.5f, b * -0.5f, a * -0.5f},
+		{a * 0.5f, b * -0.5f, a * 0.5f},
+		{-a * 0.5f, b * -0.5f, a * 0.5f},
+		{-a * 0.5f, b * -0.5f, a * -0.5f},
 
-		new Vertex(Vector3(a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-a * 0.5f, b * -0.5f, a * -0.5f), COLORMAP[0]),
+		{0.5f, 0.5f, -0.5f},
+		{0.5f, 0.5f, 0.5f},
+		{-0.5f, 0.5f, 0.5f},
+		{-0.5f, 0.5f, -0.5f},
 
-		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, 0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, 0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
-
-		new Vertex(Vector3(a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-a * 0.5f, b * 0.5f, a * -0.5f), COLORMAP[0]),
+		{a * 0.5f, b * 0.5f, a * -0.5f},
+		{a * 0.5f, b * 0.5f, a * 0.5f},
+		{-a * 0.5f, b * 0.5f, a * 0.5f},
+		{-a * 0.5f, b * 0.5f, a * -0.5f},
 	};
 
-	std::vector<std::vector<int>> faces = {
+	std::vector<std::vector<int>> F = {
 		{0, 8, 9, 1},
 		{9, 10, 2, 1},
 		{2, 10, 11, 3},
 		{8, 0, 3, 11},
+
 		{8, 12, 13, 9},
 		{13, 14, 10, 9},
 		{15, 11, 10, 14},
 		{8, 11, 15, 12},
+
 		{1, 5, 4, 0},
 		{1, 2, 6, 5},
 		{2, 3, 7, 6},
 		{7, 3, 0, 4},
+
 		{12, 15, 7, 4},
 		{15, 14, 6, 7},
 		{14, 13, 5, 6},
 		{13, 12, 4, 5},
 	};
+
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+
+	for (auto &f : F)
+	{
+		int start = vertices.size();
+		int k = f.size();
+
+		Vector3 p0 = P[f[0]];
+		Vector3 p1 = P[f[1]];
+		Vector3 p2 = P[f[2]];
+		Vector3 n = Vector3::cross(p1 - p0, p2 - p0);
+		n.normalize();
+
+		for (int vid : f)
+		{
+			vertices.push_back(new Vertex(P[vid], n));
+		}
+
+		std::vector<int> newFace;
+		for (int i = 0; i < k; i++)
+			newFace.push_back(start + i);
+
+		faces.push_back(newFace);
+	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
@@ -397,22 +487,22 @@ Mesh *MeshFactory::buildShape4(float a, float b)
 
 Mesh *MeshFactory::buildShape5(float a, float b)
 {
-	std::vector<Vertex *> vertices = {
-		new Vertex(Vector3(0.5f, -0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, -0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, -0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, -0.5f, -0.5f), COLORMAP[0]),
+	std::vector<Vector3> P = {
+		{0.5f, -0.5f, -0.5f},  // 0
+		{0.5f, -0.5f, 0.5f},   // 1
+		{-0.5f, -0.5f, 0.5f},  // 2
+		{-0.5f, -0.5f, -0.5f}, // 3
 
-		new Vertex(Vector3(0.5f, 0.5f, -0.5f), COLORMAP[0]),
-		new Vertex(Vector3(0.5f, 0.5f, a - 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, 0.5f, a - 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, 0.5f, -0.5f), COLORMAP[0]),
+		{0.5f, 0.5f, -0.5f},	 // 4
+		{0.5f, 0.5f, a - 0.5f},	 // 5
+		{-0.5f, 0.5f, a - 0.5f}, // 6
+		{-0.5f, 0.5f, -0.5f},	 // 7
 
-		new Vertex(Vector3(0.5f, b - 0.5f, 0.5f), COLORMAP[0]),
-		new Vertex(Vector3(-0.5f, b - 0.5f, 0.5f), COLORMAP[0]),
+		{0.5f, b - 0.5f, 0.5f},	 // 8
+		{-0.5f, b - 0.5f, 0.5f}, // 9
 	};
 
-	std::vector<std::vector<int>> faces = {
+	std::vector<std::vector<int>> F = {
 		{4, 5, 8, 1, 0},
 		{6, 7, 3, 2, 9},
 		{5, 6, 9, 8},
@@ -421,6 +511,34 @@ Mesh *MeshFactory::buildShape5(float a, float b)
 		{4, 0, 3, 7},
 		{4, 7, 6, 5},
 	};
+
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> faces;
+
+	auto computeNormal = [&](Vector3 a, Vector3 b, Vector3 c)
+	{
+		Vector3 u = Vector3(b - a);
+		Vector3 v = c - a;
+		Vector3 n = u.cross(v);
+		n.normalize();
+		return n;
+	};
+
+	for (auto &face : F)
+	{
+		Vector3 N = computeNormal(P[face[0]], P[face[1]], P[face[2]]);
+
+		std::vector<int> newFace;
+
+		for (int idx : face)
+		{
+			Vertex *v = new Vertex(P[idx], N);
+			vertices.push_back(v);
+			newFace.push_back(vertices.size() - 1);
+		}
+
+		faces.push_back(newFace);
+	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
@@ -507,20 +625,90 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 	int numberSlices = idx2 - idx1 + 1;
 	vertices.resize((numberSlices + 1) * 8);
 
+	Vector3 upNormal = Vector3(0.0f, 1.0f, 0.0f);
+	Vector3 downNormal = Vector3(0.0f, -1.0f, 0.0f);
+
 	for (int i = 0; i < n; ++i)
 	{
 		// loop idx2 - idx1 + 1
 		if (i >= idx1 && i <= (idx2 + 1))
 		{
-			vertices[i - idx1] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), -0.5f, (1.0f - size) * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f) * std::cos(alpha), -0.5f, (1.0f) * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
 
-			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), 0.5f, (1.0f - size) * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f) * std::cos(alpha), 0.5f, (1.0f) * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), COLORMAP[0]);
-			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)), COLORMAP[0]);
+			Vector3 outNormal = Vector3(std::cos(alpha), 0.0f, std::sin(alpha));
+			Vector3 inNormal = Vector3(-std::cos(alpha), 0.0f, -std::sin(alpha));
+
+			Vector3 inDownNormal = (inNormal + downNormal);
+			inDownNormal.normalize();
+			Vector3 outDownNormal = (outNormal + downNormal);
+			outDownNormal.normalize();
+			Vector3 inUpNormal = (inNormal + upNormal);
+			inUpNormal.normalize();
+			Vector3 outUpNowmal = (outNormal + upNormal);
+			outUpNowmal.normalize();
+
+			if (i == idx1)
+			{
+				Vector3 hooray1 = Vector3(std::sin(alpha), 0.0f, -std::cos(alpha));
+				outDownNormal = outDownNormal + hooray1;
+				outDownNormal.normalize();
+				inDownNormal = inDownNormal + hooray1;
+				inDownNormal.normalize();
+				outUpNowmal = outUpNowmal + hooray1;
+				outUpNowmal.normalize();
+				inUpNormal = inUpNormal + hooray1;
+				inUpNormal.normalize();
+			}
+
+			if (i == idx2 + 1)
+			{
+				Vector3 hooray1 = Vector3(-std::sin(alpha), 0.0f, -std::cos(alpha));
+				outDownNormal = outDownNormal + hooray1;
+				outDownNormal.normalize();
+				inDownNormal = inDownNormal + hooray1;
+				inDownNormal.normalize();
+				outUpNowmal = outUpNowmal + hooray1;
+				outUpNowmal.normalize();
+				inUpNormal = inUpNormal + hooray1;
+				inUpNormal.normalize();
+			}
+
+			if (i == range - 1)
+			{
+				Vector3 hooray1 = Vector3(-std::sin(alpha), 0.0f, std::cos(alpha));
+				outDownNormal = outDownNormal + hooray1;
+				outDownNormal.normalize();
+				inDownNormal = inDownNormal + hooray1;
+				inDownNormal.normalize();
+				outUpNowmal = outUpNowmal + hooray1;
+				outUpNowmal.normalize();
+				inUpNormal = inUpNormal + hooray1;
+				inUpNormal.normalize();
+			}
+
+			if (i == numberSlices - range)
+			{
+				Vector3 hooray1 = Vector3(std::sin(alpha), 0.0f, std::cos(alpha));
+				outDownNormal = outDownNormal + hooray1;
+				outDownNormal.normalize();
+				inDownNormal = inDownNormal + hooray1;
+				inDownNormal.normalize();
+				outUpNowmal = outUpNowmal + hooray1;
+				outUpNowmal.normalize();
+				inUpNormal = inUpNormal + hooray1;
+				inUpNormal.normalize();
+			}
+
+			// bottom
+			vertices[i - idx1] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), -0.5f, (1.0f - size) * std::sin(alpha)), outDownNormal);
+			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f) * std::cos(alpha), -0.5f, (1.0f) * std::sin(alpha)), inDownNormal);
+			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), outDownNormal);
+			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)), inDownNormal);
+
+			// up
+			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), 0.5f, (1.0f - size) * std::sin(alpha)), outUpNowmal);
+			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f) * std::cos(alpha), 0.5f, (1.0f) * std::sin(alpha)), inUpNormal);
+			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), outUpNowmal);
+			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)), inUpNormal);
 		}
 		alpha += delta;
 	}
@@ -557,6 +745,21 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 		faces.push_back(face8);
 	}
 
+	// 2 faces to cover the obj
+	int i = idx1;
+	std::vector<int> face0 = {i - idx1, i + 3 * numberSlices - idx1 + 3, i + 7 * numberSlices - idx1 + 7, i + 4 * numberSlices - idx1 + 4};
+	i = idx2 + 1;
+	std::vector<int> face1 = {i + 3 * numberSlices - idx1 + 3, i - idx1, i + 4 * numberSlices - idx1 + 4, i + 7 * numberSlices - idx1 + 7};
+	i = range - 1;
+	std::vector<int> face2 = {i + 5 * numberSlices + 5, i + 6 * numberSlices + 6, i + 2 * numberSlices + 2, i + 1 * numberSlices + 1};
+	i = numberSlices - range;
+	std::vector<int> face3 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 1 * numberSlices + 1, i + 2 * numberSlices + 2};
+
+	faces.push_back(face0);
+	faces.push_back(face1);
+	faces.push_back(face2);
+	faces.push_back(face3);
+
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
 
@@ -567,40 +770,59 @@ Mesh *MeshFactory::buildShape3(float a)
 {
 	std::vector<Vertex *> vertices;
 
-	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, -a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, 0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, 0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, -a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, -0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, -0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, -a / 2)));  // 0
+	vertices.push_back(new Vertex(Vector3(0.5f, -0.5f, a / 2)));   // 1
+	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, 0.5f)));   // 2
+	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, 0.5f)));  // 3
+	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, a / 2)));  // 4
+	vertices.push_back(new Vertex(Vector3(-0.5f, -0.5f, -a / 2))); // 5
+	vertices.push_back(new Vertex(Vector3(-a / 2, -0.5f, -0.5f))); // 6
+	vertices.push_back(new Vertex(Vector3(a / 2, -0.5f, -0.5f)));  // 7
 
-	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, -a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, 0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, 0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, -a / 2), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, -0.5f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, -0.5f), COLORMAP[0]));
+	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, -a / 2)));  // 8
+	vertices.push_back(new Vertex(Vector3(0.5f, 0.5f, a / 2)));	  // 9
+	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, 0.5f)));	  // 10
+	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, 0.5f)));  // 11
+	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, a / 2)));  // 12
+	vertices.push_back(new Vertex(Vector3(-0.5f, 0.5f, -a / 2))); // 13
+	vertices.push_back(new Vertex(Vector3(-a / 2, 0.5f, -0.5f))); // 14
+	vertices.push_back(new Vertex(Vector3(a / 2, 0.5f, -0.5f)));  // 15
 
-	std::vector<std::vector<int>> faces;
-	faces.push_back(std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7});
-	faces.push_back(std::vector<int>{15, 14, 13, 12, 11, 10, 9, 8});
+	std::vector<std::vector<int>> faces = {
+		{0, 1, 2, 3, 4, 5, 6, 7},
+		{15, 14, 13, 12, 11, 10, 9, 8},
+		{8, 9, 1, 0},
+		{9, 10, 2, 1},
+		{10, 11, 3, 2},
+		{11, 12, 4, 3},
+		{12, 13, 5, 4},
+		{13, 14, 6, 5},
+		{14, 15, 7, 6},
+		{15, 8, 0, 7}};
 
-	faces.push_back(std::vector<int>{8, 9, 1, 0});
-	faces.push_back(std::vector<int>{9, 10, 2, 1});
-	faces.push_back(std::vector<int>{10, 11, 3, 2});
-	faces.push_back(std::vector<int>{11, 12, 4, 3});
-	faces.push_back(std::vector<int>{12, 13, 5, 4});
-	faces.push_back(std::vector<int>{13, 14, 6, 5});
-	faces.push_back(std::vector<int>{14, 15, 7, 6});
-	faces.push_back(std::vector<int>{8, 0, 7, 15});
+	std::vector<Vector3> normals(vertices.size(), Vector3(0, 0, 0));
+
+	for (auto &f : faces)
+	{
+		Vector3 a = vertices[f[1]]->position - vertices[f[0]]->position;
+		Vector3 b = vertices[f[2]]->position - vertices[f[0]]->position;
+		Vector3 n = Vector3(a.cross(b).x, a.cross(b).y, a.cross(b).z);
+		n.normalize();
+
+		for (int idx : f)
+		{
+			normals[idx] = Vector3((normals[idx] + n).x, (normals[idx] + n).y, (normals[idx] + n).z);
+		}
+	}
+
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		normals[i].normalize();
+		vertices[i]->normal = Vector3(normals[i].x, normals[i].y, normals[i].z);
+	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
-
 	return mesh;
 }
 
@@ -830,7 +1052,7 @@ public:
 Light::Light(GLenum lightID)
 {
 	// Sunlight as directional light
-	position.set(0.0f, 10.0f, 10.0f, 0.0f);
+	position.set(10.0f, 10.0f, 10.0f, 0.0f);
 	ambient.set(0.2f, 0.2f, 0.2f, 1.0f);
 	diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
 	specular.set(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1067,10 +1289,20 @@ void Scene::init()
 	mi1->setMaterial(material1);
 
 	// 弓のように
+	// mesh
 	Mesh *m2 = this->meshes["2"];
+	// instance
 	MeshInstance *mi2 = new MeshInstance(m2);
 	mi2->localScale.set(1.0f, 0.3f, 1.0f);
 	mi2->localRotation.set(-90.0f, 0.0f, 0.0f);
+	// material
+	Material *material7 = new Material();
+	material7->ambient = Vector4(0.3f, 0.0f, 0.1f, 1.0f);
+	material7->diffuse = Vector4(0.9f, 0.0f, 0.0f, 1.0f);
+	material7->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material7->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material7->shininess = 60.0f;
+	mi2->setMaterial(material7);
 
 	// ２つの如意きんこぼう
 	// mesh
@@ -1095,10 +1327,20 @@ void Scene::init()
 	mi4->setMaterial(material2);
 
 	// 2. パンみたい
+	// mesh
 	Mesh *m4 = this->meshes["4"];
+	// instance
 	MeshInstance *mi5 = new MeshInstance(m4);
 	mi5->localScale.set(3.0f / 8.0f, 1.0f, 3.0f / 8.0f);
 	mi5->localPosition.set(0.0f, 3.0f, 0.0f);
+	// material
+	Material *material10 = new Material();
+	material10->ambient = Vector4(0.1f, 0.1f, 0.3f, 1.0f);
+	material10->diffuse = Vector4(0.0f, 0.1f, 0.9f, 1.0f);
+	material10->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material10->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material10->shininess = 70.0f;
+	mi5->setMaterial(material10);
 
 	// 3. パンの隣
 	// instance
@@ -1115,10 +1357,20 @@ void Scene::init()
 	mi6->setMaterial(material6);
 
 	// 孫の手みたい
+	// mesh
 	Mesh *m5 = this->meshes["5"];
+	// instance
 	MeshInstance *mi7 = new MeshInstance(m5);
 	mi7->localScale.set(3.0f / 8.0f, 3.3f, 0.3f);
 	mi7->localPosition.set(0.0f, 3.5f - (3.3f / 2), 3.0f / 16.0f + 0.5f + 0.15f);
+	// material
+	Material *material9 = new Material();
+	material9->ambient = Vector4(0.1f, 0.1f, 0.3f, 1.0f);
+	material9->diffuse = Vector4(0.0f, 0.1f, 0.9f, 1.0f);
+	material9->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
+	material9->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material9->shininess = 70.0f;
+	mi7->setMaterial(material9);
 
 	// ピザのようなもの
 	// mesh
@@ -1166,11 +1418,21 @@ void Scene::init()
 	mi10->setMaterial(material4);
 
 	// 武器みたい
+	// mesh
 	Mesh *m7 = this->meshes["3"];
+	// instance
 	MeshInstance *mi11 = new MeshInstance(m7);
 	mi11->localScale.set(0.4f, 0.4f, 0.4f);
 	mi11->localRotation.set(90.0f, 0.0f, 0.0f);
 	mi11->localPosition.set(0.0f, 0.0f, 3.0f / 16.0f + 0.5f + 0.15f);
+	// material
+	Material *material8 = new Material();
+	material8->ambient = Vector4(0.4f, 0.2f, 0.0f, 1.0f);
+	material8->diffuse = Vector4(1.0f, 0.5f, 0.0f, 1.0f);
+	material8->specular = Vector4(0.7f, 0.7f, 0.6f, 1.0f);
+	material8->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+	material8->shininess = 50.0f;
+	mi11->setMaterial(material8);
 
 	// add instance to object
 	obj->add(mi1);	// 0 👆
@@ -1218,9 +1480,57 @@ void Scene::init()
 	this->camera->target.set(0.0f, 0.0f, 0.0f);
 	this->camera->up.set(0.0f, 1.0f, 0.0f);
 
-	// set up lights
+	// ☀️☀️☀️ [0] - Sunlight
 	Light *sun = new Light(GL_LIGHT0);
+
+	// 💡💡💡 [5] - Above bulb
+	Light *bulbAbove = new Light(GL_LIGHT5);
+	bulbAbove->position.set(0.0f, 5.0f, 0.0f, 1.0f);
+	bulbAbove->ambient.set(0.05f, 0.05f, 0.05f, 1.0f);
+	bulbAbove->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
+	bulbAbove->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	// 💡💡💡 [1] - Right-side bulb
+	Light *bulbRight = new Light(GL_LIGHT1);
+	bulbRight->position.set(5.0f, 0.0f, 0.0f, 1.0f);
+	bulbRight->ambient.set(0.05f, 0.05f, 0.05f, 1.0f);
+	bulbRight->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
+	bulbRight->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	// 💡💡💡 [2] - Left-side bulb
+	Light *bulbLeft = new Light(GL_LIGHT2);
+	bulbLeft->position.set(-5.0f, .0f, 0.0f, 1.0f);
+	bulbLeft->ambient.set(0.05f, 0.05f, 0.05f, 1.0f);
+	bulbLeft->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
+	bulbLeft->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	// 💡💡💡 [3] - behind bulb
+	Light *bulbBehind = new Light(GL_LIGHT3);
+	bulbBehind->position.set(0.0f, 0.0f, -10.0f, 1.0f);
+	bulbBehind->ambient.set(0.05f, 0.05f, 0.05f, 1.0f);
+	bulbBehind->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
+	bulbBehind->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	// 💡💡💡 [4] - front bulb
+	Light *bulbFront = new Light(GL_LIGHT4);
+	bulbFront->position.set(0.0f, 0.0f, 5.0f, 1.0f);
+	bulbFront->ambient.set(0.05f, 0.05f, 0.05f, 1.0f);
+	bulbFront->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
+	bulbFront->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	sun->enabled = true;
+	bulbRight->enabled = true;
+	bulbLeft->enabled = true;
+	bulbBehind->enabled = true;
+	bulbFront->enabled = false;
+	bulbAbove->enabled = false;
+
 	this->lights.push_back(sun);
+	this->lights.push_back(bulbRight);
+	this->lights.push_back(bulbLeft);
+	this->lights.push_back(bulbBehind);
+	this->lights.push_back(bulbFront);
+	this->lights.push_back(bulbAbove);
 }
 
 void Scene::load()
