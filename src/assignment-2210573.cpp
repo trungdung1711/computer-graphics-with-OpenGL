@@ -302,7 +302,7 @@ void Mesh::drawWire()
 		{
 			Vertex *v = vertices[idx];
 			// blue
-			glColor3f(0.0f, 0.0f, 1.0f);
+			glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
 			glVertex3f(v->position.x, v->position.y, v->position.z);
 		}
 		glEnd();
@@ -880,12 +880,14 @@ public:
 	Vector3 localPosition;
 	Vector3 localRotation;
 	Vector3 localScale;
+	Vector4 color;
 
-	MeshInstance(Mesh *m, Material *material = nullptr) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f), material{material} {}
+	MeshInstance(Mesh *m, Material *material = nullptr) : mesh(m), localPosition(), localRotation(), localScale(1.0f, 1.0f, 1.0f), material{material}, color{1.0f, 0.0f, 0.0f, 1.0f} {}
 
 	void draw(bool isColour);
 	void setMaterial(Material *material);
 	void setDefaultMaterial();
+	void setColor(float x, float y, float z, float a);
 	~MeshInstance();
 };
 
@@ -904,13 +906,14 @@ void MeshInstance::draw(bool isColour = false)
 
 	if (isColour)
 	{
-		if (this->material != nullptr)
-			this->material->apply();
-		else
-		{
-			isColour = false;
-		}
+		// ignored if lighting
+		// else, apply that
+		this->material->apply();
+		glColor4f(this->material->diffuse.x, this->material->diffuse.y, this->material->diffuse.z, this->material->diffuse.w);
 	}
+	// ignored by default of lighting
+	// wire -> overwrite by default
+	// glColor4f(this->color.x, this->color.y, this->color.z, this->color.w);
 	mesh->draw(isColour);
 
 	glPopMatrix();
@@ -927,6 +930,14 @@ void MeshInstance::setDefaultMaterial()
 	delete this->material;
 	Material *m = new Material();
 	this->setMaterial(m);
+}
+
+void MeshInstance::setColor(float x, float y, float z, float a)
+{
+	this->color.x = x;
+	this->color.y = y;
+	this->color.z = z;
+	this->color.w = a;
 }
 
 MeshInstance::~MeshInstance()
@@ -1107,6 +1118,7 @@ public:
 	void applyPerspectiveProjection();
 	void applyOrthographicProjection();
 	void draw();
+	void draw2d();
 	void update();
 	void init();
 	void load();
@@ -1223,6 +1235,8 @@ void Scene::applyOrthographicProjection()
 
 void Scene::draw()
 {
+	// std::cout << "3D " << this->isColour << "\n";
+	// std::cout << "3D\n";
 	// set the background
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1260,8 +1274,41 @@ void Scene::draw()
 	{
 		object->draw(this->isColour);
 	}
+}
 
-	glutSwapBuffers();
+void Scene::draw2d()
+{
+	// std::cout << "2D " << this->isColour << "\n";
+	// std::cout << "2D" << "\n";
+	// parameters changed in the 3D mode doesn't affect it at all
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// set the projection
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-4.0f, 4.0f, -4.0f, 4.0f, 0.0f, 7.0f);
+
+	// set the camera
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+
+	// disable lighting completely
+	glDisable(GL_LIGHTING);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_COLOR_MATERIAL);
+
+	// start drawing, transform the simple Mesh into Object
+	drawAxes();
+
+	for (Object *o : this->objects)
+	{
+		// normal is ignored
+		// colored is used
+		// light is disable
+		o->draw(this->isColour);
+	}
 }
 
 void Scene::init()
@@ -1428,7 +1475,7 @@ void Scene::init()
 	// material
 	Material *material8 = new Material();
 	material8->ambient = Vector4(0.4f, 0.2f, 0.0f, 1.0f);
-	material8->diffuse = Vector4(1.0f, 0.5f, 0.0f, 1.0f);
+	material8->diffuse = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
 	material8->specular = Vector4(0.7f, 0.7f, 0.6f, 1.0f);
 	material8->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 	material8->shininess = 50.0f;
@@ -1584,7 +1631,8 @@ public:
 		ACTION_MOVE_CAM_BACKWARD,
 		ACTION_COLOUR,
 		ACTION_MOVE_WHEEL,
-		ACTION_MOVE_WHEEL_COUNTER
+		ACTION_MOVE_WHEEL_COUNTER,
+		ACTION_2D
 	};
 	Scene *scene;
 	double lastTime;
@@ -1651,6 +1699,10 @@ void Game::update()
 	// avoid large delta time
 	if (dt < 0.0 || dt > 0.5)
 		dt = 0.0;
+
+	if (this->actions[ACTION_2D])
+	{
+	}
 
 	if (this->actions[ACTION_MOVE_CAM_UP])
 	{
@@ -1774,7 +1826,14 @@ void Game::render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// drawing vertices to pixels
-	scene->draw();
+	if (actions[ACTION_2D])
+	{
+		this->scene->draw2d();
+	}
+	else
+	{
+		this->scene->draw();
+	}
 
 	// swap buffer
 	glutSwapBuffers();
@@ -1808,10 +1867,10 @@ void onKeyDown(unsigned char key, int x, int y)
 {
 	switch (key)
 	{
-	case '+':
+	case '-':
 		gGame.actions[Game::ACTION_MOVE_CAM_FORWARD] = true;
 		break;
-	case '-':
+	case '+':
 		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = true;
 		break;
 	case 'w':
@@ -1824,6 +1883,10 @@ void onKeyDown(unsigned char key, int x, int y)
 	case '2':
 		gGame.actions[Game::ACTION_MOVE_WHEEL] = true;
 		break;
+	case 'v':
+	case 'V':
+		gGame.actions[Game::ACTION_2D] = !gGame.actions[Game::ACTION_2D];
+		break;
 	}
 }
 
@@ -1831,10 +1894,10 @@ void onKeyUp(unsigned char key, int x, int y)
 {
 	switch (key)
 	{
-	case '+':
+	case '-':
 		gGame.actions[Game::ACTION_MOVE_CAM_FORWARD] = false;
 		break;
-	case '-':
+	case '+':
 		gGame.actions[Game::ACTION_MOVE_CAM_BACKWARD] = false;
 		break;
 	case '1':
