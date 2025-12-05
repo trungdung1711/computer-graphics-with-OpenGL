@@ -567,69 +567,83 @@ Mesh *MeshFactory::buildShape1(float a, int n, int idx1, int idx2)
 
 	float alpha = 0.0f;
 	float dt = 2 * M_PI / n;
+
+	std::vector<Vector3> bottomPositions;
+	std::vector<Vector3> topPositions;
+
 	for (int i = 0; i < n; ++i)
 	{
-		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
-		Vector3 bottomFaceNormal(0.0f, -1.0f, 0.0f);
-		Vector3 normal = sideNormal + bottomFaceNormal;
-		normal.normalize();
 		if (i >= idx1 && i <= idx2)
 		{
-			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), normal));
+			bottomPositions.push_back(Vector3(a * cos(alpha), -0.5f, a * sin(alpha)));
+			topPositions.push_back(Vector3(a * cos(alpha), 0.5f, a * sin(alpha)));
 		}
 		else
 		{
-			vertices.push_back(new Vertex(Vector3(std::cos(alpha), -0.5f, std::sin(alpha)), normal));
+			bottomPositions.push_back(Vector3(cos(alpha), -0.5f, sin(alpha)));
+			topPositions.push_back(Vector3(cos(alpha), 0.5f, sin(alpha)));
 		}
 		alpha += dt;
 	}
 
-	alpha = 0.0f;
+	Vector3 bottomCenter(0.0f, -0.5f, 0.0f);
+	Vector3 topCenter(0.0f, 0.5f, 0.0f);
+
+	{
+		int start = vertices.size();
+		for (int i = 0; i < n; ++i)
+		{
+			vertices.push_back(new Vertex(bottomPositions[i], Vector3(0, -1, 0))); // normal down
+		}
+		vertices.push_back(new Vertex(bottomCenter, Vector3(0, -1, 0)));
+
+		for (int i = 0; i < n; ++i)
+		{
+			std::vector<int> face = {start + i, start + (i + 1) % n, start + n}; // bottom center
+			faces.push_back(face);
+		}
+	}
+
+	{
+		int start = vertices.size();
+		for (int i = 0; i < n; ++i)
+		{
+			vertices.push_back(new Vertex(topPositions[i], Vector3(0, 1, 0))); // normal up
+		}
+		vertices.push_back(new Vertex(topCenter, Vector3(0, 1, 0)));
+
+		for (int i = 0; i < n; ++i)
+		{
+			std::vector<int> face = {start + i, start + n, start + (i + 1) % n}; // top center
+			faces.push_back(face);
+		}
+	}
+
 	for (int i = 0; i < n; ++i)
 	{
-		Vector3 sideNormal(std::cos(alpha), 0.0f, std::sin(alpha));
-		Vector3 topFacenormal(0.0f, 1.0f, 0.0f);
-		Vector3 normal = sideNormal + topFacenormal;
+		int next = (i + 1) % n;
+		Vector3 p0 = bottomPositions[i];
+		Vector3 p1 = topPositions[i];
+		Vector3 p2 = topPositions[next];
+
+		Vector3 normal = Vector3::cross(p1 - p0, p2 - p0);
 		normal.normalize();
-		if (i >= idx1 && i <= idx2)
-		{
-			vertices.push_back(new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), normal));
-		}
-		else
-		{
-			vertices.push_back(new Vertex(Vector3(std::cos(alpha), 0.5f, std::sin(alpha)), normal));
-		}
-		alpha += dt;
-	}
 
-	vertices.push_back(new Vertex(Vector3(0.0f, -0.5f, 0.0f), COLORMAP[0]));
-	vertices.push_back(new Vertex(Vector3(0.0f, 0.5f, 0.0f), COLORMAP[0]));
+		int start = vertices.size();
+		vertices.push_back(new Vertex(bottomPositions[i], normal));
+		vertices.push_back(new Vertex(bottomPositions[next], normal));
+		vertices.push_back(new Vertex(topPositions[next], normal));
+		vertices.push_back(new Vertex(topPositions[i], normal));
 
-	for (int i = 0; i < n; ++i)
-	{
-		std::vector<int> face = {i, (i + 1) % n, 2 * n};
-		faces.push_back(face);
-	}
-
-	for (int i = n; i < 2 * n; ++i)
-	{
-		std::vector<int> face = {i, 2 * n + 1, (i + 1) % n + n};
-		faces.push_back(face);
-	}
-
-	for (int i = 0; i < n; ++i)
-	{
-		std::vector<int> face = {i, i + n, (i + n + 1) % n + n, (i + 1) % n};
-		faces.push_back(face);
+		faces.push_back({start, start + 1, start + 2, start + 3});
 	}
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
-
 	return mesh;
 }
 
-Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, float size = 0.2, int range = 15)
+Mesh *MeshFactory::buildShape2(float a, int n, int idx1 /*=45*/, int idx2 /*=134*/, float size /*=0.2*/, int range /*=15*/)
 {
 	std::vector<Vertex *> vertices;
 	std::vector<std::vector<int>> faces;
@@ -639,90 +653,21 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 	int numberSlices = idx2 - idx1 + 1;
 	vertices.resize((numberSlices + 1) * 8);
 
-	Vector3 upNormal = Vector3(0.0f, 1.0f, 0.0f);
-	Vector3 downNormal = Vector3(0.0f, -1.0f, 0.0f);
-
 	for (int i = 0; i < n; ++i)
 	{
-		// loop idx2 - idx1 + 1
 		if (i >= idx1 && i <= (idx2 + 1))
 		{
-
-			Vector3 outNormal = Vector3(std::cos(alpha), 0.0f, std::sin(alpha));
-			Vector3 inNormal = Vector3(-std::cos(alpha), 0.0f, -std::sin(alpha));
-
-			Vector3 inDownNormal = (inNormal + downNormal);
-			inDownNormal.normalize();
-			Vector3 outDownNormal = (outNormal + downNormal);
-			outDownNormal.normalize();
-			Vector3 inUpNormal = (inNormal + upNormal);
-			inUpNormal.normalize();
-			Vector3 outUpNowmal = (outNormal + upNormal);
-			outUpNowmal.normalize();
-
-			if (i == idx1)
-			{
-				Vector3 hooray1 = Vector3(std::sin(alpha), 0.0f, -std::cos(alpha));
-				outDownNormal = outDownNormal + hooray1;
-				outDownNormal.normalize();
-				inDownNormal = inDownNormal + hooray1;
-				inDownNormal.normalize();
-				outUpNowmal = outUpNowmal + hooray1;
-				outUpNowmal.normalize();
-				inUpNormal = inUpNormal + hooray1;
-				inUpNormal.normalize();
-			}
-
-			if (i == idx2 + 1)
-			{
-				Vector3 hooray1 = Vector3(-std::sin(alpha), 0.0f, -std::cos(alpha));
-				outDownNormal = outDownNormal + hooray1;
-				outDownNormal.normalize();
-				inDownNormal = inDownNormal + hooray1;
-				inDownNormal.normalize();
-				outUpNowmal = outUpNowmal + hooray1;
-				outUpNowmal.normalize();
-				inUpNormal = inUpNormal + hooray1;
-				inUpNormal.normalize();
-			}
-
-			if (i == range - 1)
-			{
-				Vector3 hooray1 = Vector3(-std::sin(alpha), 0.0f, std::cos(alpha));
-				outDownNormal = outDownNormal + hooray1;
-				outDownNormal.normalize();
-				inDownNormal = inDownNormal + hooray1;
-				inDownNormal.normalize();
-				outUpNowmal = outUpNowmal + hooray1;
-				outUpNowmal.normalize();
-				inUpNormal = inUpNormal + hooray1;
-				inUpNormal.normalize();
-			}
-
-			if (i == numberSlices - range)
-			{
-				Vector3 hooray1 = Vector3(std::sin(alpha), 0.0f, std::cos(alpha));
-				outDownNormal = outDownNormal + hooray1;
-				outDownNormal.normalize();
-				inDownNormal = inDownNormal + hooray1;
-				inDownNormal.normalize();
-				outUpNowmal = outUpNowmal + hooray1;
-				outUpNowmal.normalize();
-				inUpNormal = inUpNormal + hooray1;
-				inUpNormal.normalize();
-			}
-
 			// bottom
-			vertices[i - idx1] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), -0.5f, (1.0f - size) * std::sin(alpha)), outDownNormal);
-			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f) * std::cos(alpha), -0.5f, (1.0f) * std::sin(alpha)), inDownNormal);
-			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)), outDownNormal);
-			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)), inDownNormal);
+			vertices[i - idx1] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), -0.5f, (1.0f - size) * std::sin(alpha)));
+			vertices[i + numberSlices - idx1 + 1] = new Vertex(Vector3((1.0f) * std::cos(alpha), -0.5f, (1.0f) * std::sin(alpha)));
+			vertices[i + 2 * numberSlices - idx1 + 2] = new Vertex(Vector3(a * std::cos(alpha), -0.5f, a * std::sin(alpha)));
+			vertices[i + 3 * numberSlices - idx1 + 3] = new Vertex(Vector3((a + size) * std::cos(alpha), -0.5f, (a + size) * std::sin(alpha)));
 
 			// up
-			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), 0.5f, (1.0f - size) * std::sin(alpha)), outUpNowmal);
-			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f) * std::cos(alpha), 0.5f, (1.0f) * std::sin(alpha)), inUpNormal);
-			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)), outUpNowmal);
-			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)), inUpNormal);
+			vertices[i + 4 * numberSlices - idx1 + 4] = new Vertex(Vector3((1.0f - size) * std::cos(alpha), 0.5f, (1.0f - size) * std::sin(alpha)));
+			vertices[i + 5 * numberSlices - idx1 + 5] = new Vertex(Vector3((1.0f) * std::cos(alpha), 0.5f, (1.0f) * std::sin(alpha)));
+			vertices[i + 6 * numberSlices - idx1 + 6] = new Vertex(Vector3(a * std::cos(alpha), 0.5f, a * std::sin(alpha)));
+			vertices[i + 7 * numberSlices - idx1 + 7] = new Vertex(Vector3((a + size) * std::cos(alpha), 0.5f, (a + size) * std::sin(alpha)));
 		}
 		alpha += delta;
 	}
@@ -741,12 +686,11 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 
 		if ((i >= 0 && i < range) || (i >= numberSlices - range && i < numberSlices))
 		{
-			// 0 - 9 and 80 - 89
-			std::vector<int> face1 = {i + 1 * numberSlices + 1, i + 2 * numberSlices + 2, i + 2 * numberSlices + 2 + 1, i + 1 * numberSlices + 1 + 1};
-			std::vector<int> face2 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 5 * numberSlices + 5 + 1, i + 6 * numberSlices + 6 + 1};
+			std::vector<int> rf1 = {i + 1 * numberSlices + 1, i + 2 * numberSlices + 2, i + 2 * numberSlices + 2 + 1, i + 1 * numberSlices + 1 + 1};
+			std::vector<int> rf2 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 5 * numberSlices + 5 + 1, i + 6 * numberSlices + 6 + 1};
 
-			faces.push_back(face1);
-			faces.push_back(face2);
+			faces.push_back(rf1);
+			faces.push_back(rf2);
 		}
 
 		faces.push_back(face1);
@@ -759,24 +703,69 @@ Mesh *MeshFactory::buildShape2(float a, int n, int idx1 = 45, int idx2 = 134, fl
 		faces.push_back(face8);
 	}
 
-	// 2 faces to cover the obj
-	int i = idx1;
-	std::vector<int> face0 = {i - idx1, i + 3 * numberSlices - idx1 + 3, i + 7 * numberSlices - idx1 + 7, i + 4 * numberSlices - idx1 + 4};
-	i = idx2 + 1;
-	std::vector<int> face1 = {i + 3 * numberSlices - idx1 + 3, i - idx1, i + 4 * numberSlices - idx1 + 4, i + 7 * numberSlices - idx1 + 7};
-	i = range - 1;
-	std::vector<int> face2 = {i + 5 * numberSlices + 5, i + 6 * numberSlices + 6, i + 2 * numberSlices + 2, i + 1 * numberSlices + 1};
-	i = numberSlices - range;
-	std::vector<int> face3 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 1 * numberSlices + 1, i + 2 * numberSlices + 2};
+	{
+		int i = idx1;
+		std::vector<int> face0 = {i - idx1, i + 3 * numberSlices - idx1 + 3, i + 7 * numberSlices - idx1 + 7, i + 4 * numberSlices - idx1 + 4};
+		i = idx2 + 1;
+		std::vector<int> face1 = {i + 3 * numberSlices - idx1 + 3, i - idx1, i + 4 * numberSlices - idx1 + 4, i + 7 * numberSlices - idx1 + 7};
+		i = range;
+		std::vector<int> face2 = {i + 5 * numberSlices + 5, i + 6 * numberSlices + 6, i + 2 * numberSlices + 2, i + 1 * numberSlices + 1};
+		i = numberSlices - range;
+		std::vector<int> face3 = {i + 6 * numberSlices + 6, i + 5 * numberSlices + 5, i + 1 * numberSlices + 1, i + 2 * numberSlices + 2};
 
-	faces.push_back(face0);
-	faces.push_back(face1);
-	faces.push_back(face2);
-	faces.push_back(face3);
+		faces.push_back(face0);
+		faces.push_back(face1);
+		faces.push_back(face2);
+		faces.push_back(face3);
+	}
+
+	std::vector<Vertex *> flatVertices;
+	std::vector<std::vector<int>> flatFaces;
+	flatVertices.reserve(faces.size() * 4);
+	flatFaces.reserve(faces.size());
+
+	for (auto &face : faces)
+	{
+		if (face.size() < 3)
+			continue;
+
+		Vertex *v0 = vertices[face[0]];
+		Vertex *v1 = vertices[face[1]];
+		Vertex *v2 = vertices[face[2]];
+
+		Vector3 e1 = v1->position - v0->position;
+		Vector3 e2 = v2->position - v0->position;
+		Vector3 N = e1.cross(e2);
+		N.normalize();
+
+		int base = (int)flatVertices.size();
+
+		for (int idx : face)
+		{
+			Vertex *oldV = vertices[idx];
+			Vertex *newV = new Vertex(oldV->position, N);
+			flatVertices.push_back(newV);
+		}
+
+		int k = (int)face.size();
+		std::vector<int> newFace;
+		newFace.reserve(k);
+		for (int j = 0; j < k; ++j)
+			newFace.push_back(base + j);
+		flatFaces.push_back(newFace);
+	}
+
+	for (Vertex *v : vertices)
+	{
+		if (v)
+			delete v;
+	}
+
+	vertices = std::move(flatVertices);
+	faces = std::move(flatFaces);
 
 	Mesh *mesh = new Mesh();
 	mesh->build(vertices, faces);
-
 	return mesh;
 }
 
@@ -1121,6 +1110,9 @@ public:
 
 	bool isColour;
 
+	std::vector<Vertex *> vertices;
+	std::vector<std::vector<int>> quads;
+
 	Scene();
 	void add(Object *object);
 	void renderBitmapString(float x, float y, float z, void *font, const char *string);
@@ -1134,6 +1126,9 @@ public:
 	void drawDigit(int num, float x, float y);
 	void drawColon(float x, float y);
 	void drawClock();
+	void prepareBrick(float a, float b);
+	void drawBrick();
+	void drawFloor();
 	void update();
 	void init();
 	void load();
@@ -1282,7 +1277,13 @@ void Scene::draw()
 	}
 
 	// start drawing/transform from data in memory
-	drawAxes();
+	if (this->isColour)
+	{
+		// drawBrick(0.0f, 0.15f);
+		drawFloor();
+	}
+
+	// drawAxes();
 
 	for (Object *object : objects)
 	{
@@ -1298,20 +1299,19 @@ void Scene::draw2d()
 	// set the projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(-4.0f, 4.0f, -4.0f, 4.0f, 0.0f, 7.0f);
+	glOrtho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 10.0f);
 
 	// set the camera
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+	gluLookAt(0.0f, 2.5f, 7.0f, 0.0f, 2.5f, 0.0f, 0.0f, 1.0f, 0.0f);
 
 	// disable lighting completely
 	glDisable(GL_LIGHTING);
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_COLOR_MATERIAL);
 
-	// start drawing, transform the simple Mesh into Object
-	drawAxes();
+	// drawAxes();
 
 	for (Object *o : this->objects)
 	{
@@ -1434,6 +1434,121 @@ void Scene::drawClock()
 	drawDigit(s % 10, 240, y);
 }
 
+void Scene::prepareBrick(float a, float b)
+{
+	float start = M_PI_4 + M_PI_4 / 2;
+	float theta = M_PI_4 / 2;
+	std::vector<float> angles;
+	Vector3 normal = {0.0f, 0.0f, 1.0f};
+
+	for (int i = 0; i < 8; ++i)
+	{
+		angles.push_back(start);
+		start -= M_PI_4;
+	}
+
+	int i = 0;
+
+	for (float angle : angles)
+	{
+		float x = a * std::cos(angle);
+		float y = a * std::sin(angle);
+
+		Vertex *v0 = new Vertex(Vector3(x + 0.0f, y + 0.0f, 0.0f), normal);
+		Vertex *v1 = new Vertex(Vector3(x + b * std::cos(angle - theta), y + b * std::sin(angle - theta), 0.0f), normal);
+		Vertex *v2 = new Vertex(Vector3(x + 2 * b * std::cos(angle), y + 2 * b * std::sin(angle), 0.0f), normal);
+		Vertex *v3 = new Vertex(Vector3(x + b * std::cos(angle + theta), y + b * std::sin(angle + theta), 0.0f), normal);
+
+		this->vertices.push_back(v0);
+		this->vertices.push_back(v1);
+		this->vertices.push_back(v2);
+		this->vertices.push_back(v3);
+
+		std::vector<int> quad = {i, i + 1, i + 2, i + 3};
+		this->quads.push_back(quad);
+
+		i += 4;
+	}
+}
+
+void Scene::drawBrick()
+{
+	// BG
+	Vector4 color = {1.0f, 1.0f, 1.0f, 1.0f};
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, color.data());
+	glBegin(GL_QUADS);
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(-0.5f, -0.5f, -0.01f);
+
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(-0.5f, 0.5f, -0.01f);
+
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(0.5f, 0.5f, -0.01f);
+
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(0.5f, -0.5f, -0.01f);
+	glEnd();
+
+	// 8 diamonds
+	Vector4 color2 = {90.0f / 255.0f, 156.0f / 255.0f, 250.0f / 255.0f, 1.0f};
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, color2.data());
+	glNormal3f(0.0f, 0.0f, 1.0f);
+
+	for (std::vector<int> quad : this->quads)
+	{
+		glBegin(GL_QUADS);
+		for (int idx : quad)
+		{
+			glVertex3f(this->vertices[idx]->position.x, this->vertices[idx]->position.y, this->vertices[idx]->position.z);
+		}
+
+		glEnd();
+	}
+
+	// 4 三角
+	glNormal3f(0.0f, 0.0f, 1.0f);
+	glBegin(GL_TRIANGLES);
+	glVertex3f(-0.5f, 0.5f, 0.0f);
+	glVertex3f(-0.5f, 0.2f, 0.0f);
+	glVertex3f(-0.2f, 0.5f, 0.0f);
+	glEnd();
+
+	glBegin(GL_TRIANGLES);
+	glVertex3f(0.5f, 0.5f, 0.0f);
+	glVertex3f(0.2f, 0.5f, 0.0f);
+	glVertex3f(0.5f, 0.2f, 0.0f);
+	glEnd();
+
+	glBegin(GL_TRIANGLES);
+	glVertex3f(0.5f, -0.5f, 0.0f);
+	glVertex3f(0.5f, -0.2f, 0.0f);
+	glVertex3f(0.2f, -0.5f, 0.0f);
+	glEnd();
+
+	glBegin(GL_TRIANGLES);
+	glVertex3f(-0.5f, -0.5f, 0.0f);
+	glVertex3f(-0.2f, -0.5f, 0.0f);
+	glVertex3f(-0.5f, -0.2f, 0.0f);
+	glEnd();
+}
+
+void Scene::drawFloor()
+{
+	for (float i = -4.5f; i <= 4.5f; i += 1.0f)
+	{
+		for (float j = -4.5f; j <= 4.5f; j += 1.0f)
+		{
+			glPushMatrix();
+			glTranslatef(i, 0.0f, j);
+			glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+
+			this->drawBrick();
+			glPopMatrix();
+		}
+	}
+}
+
 void Scene::init()
 {
 	// load and build memory for meshes
@@ -1468,7 +1583,7 @@ void Scene::init()
 	// material
 	Material *material7 = new Material();
 	material7->ambient = Vector4(0.3f, 0.0f, 0.1f, 1.0f);
-	material7->diffuse = Vector4(0.9f, 0.0f, 0.0f, 1.0f);
+	material7->diffuse = Vector4(0.1f, 0.6f, 0.1f, 1.0f);
 	material7->specular = Vector4(0.6f, 0.6f, 0.6f, 1.0f);
 	material7->emission = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 	material7->shininess = 60.0f;
@@ -1618,10 +1733,13 @@ void Scene::init()
 	obj->add(mi11); // 10
 
 	// change the obj
-	// obj->position.set(0.0f, 3.0f, 0.0f);
+	obj->position.set(0.0f, 2.0f, 0.0f);
 
 	// Add the object to the scene
 	this->objects.push_back(obj);
+
+	// set up the brick
+	this->prepareBrick(0.03, 0.18f);
 
 	// set up inial theta
 	this->theta0 = 0.0f;
@@ -1637,17 +1755,18 @@ void Scene::init()
 	float deltaS = std::sqrt(std::pow(1.65f, 2) - std::pow(x, 2)) - std::sqrt(std::pow(1.15f, 2) - std::pow(x, 2));
 	float deltaA = beta - alpha;
 	this->vMove = this->camera->omega / deltaA * deltaS;
+
 	// set up initial camera
 	float angle = M_PI / 2;
-	float height = 0.0f;
-	float radius = 5.0f;
+	float height = 2.5f;
+	float radius = 7.0f;
 
 	this->camera->angle = angle;
 	this->camera->height = height;
 	this->camera->radius = radius;
 
 	this->camera->position.set(radius * std::cos(angle), height, radius * std::sin(angle));
-	this->camera->target.set(0.0f, 0.0f, 0.0f);
+	this->camera->target.set(0.0f, 2.5f, 0.0f);
 	this->camera->up.set(0.0f, 1.0f, 0.0f);
 
 	// ☀️☀️☀️ [0] - Sunlight
@@ -1688,12 +1807,21 @@ void Scene::init()
 	bulbFront->diffuse.set(1.0f, 0.9f, 0.8f, 1.0f);
 	bulbFront->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
 
-	sun->enabled = true;
+	// 💡💡💡 [6] - floor bulb
+	Light *bulbFloor = new Light(GL_LIGHT6);
+	bulbFloor->position.set(0.0f, 0.0f, 0.0f, 1.0f);
+	bulbFloor->ambient.set(0.01f, 0.01f, 0.01f, 1.0f);
+	bulbFloor->diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
+	bulbFloor->specular.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+	sun->enabled = false;
+
 	bulbRight->enabled = true;
 	bulbLeft->enabled = true;
 	bulbBehind->enabled = true;
-	bulbFront->enabled = false;
-	bulbAbove->enabled = false;
+	bulbFront->enabled = true;
+	bulbAbove->enabled = true;
+	bulbFloor->enabled = true;
 
 	this->lights.push_back(sun);
 	this->lights.push_back(bulbRight);
@@ -1701,6 +1829,7 @@ void Scene::init()
 	this->lights.push_back(bulbBehind);
 	this->lights.push_back(bulbFront);
 	this->lights.push_back(bulbAbove);
+	this->lights.push_back(bulbFloor);
 }
 
 void Scene::load()
@@ -1733,6 +1862,11 @@ Scene::~Scene()
 	for (auto p : this->meshes)
 	{
 		delete p.second;
+	}
+
+	for (auto v : this->vertices)
+	{
+		delete v;
 	}
 }
 // ###########################################################
@@ -1942,7 +2076,7 @@ void Game::update()
 
 void Game::render()
 {
-	float clockWidth = WIDTH * 0.2f;
+	float clockWidth = WIDTH * 0.25f;
 	float clockHeight = HEIGHT * 0.07f;
 
 	float mainWidth = WIDTH - clockWidth;
