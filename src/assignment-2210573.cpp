@@ -2236,7 +2236,7 @@ int main(int argc, char **argv)
 	// register callback for display
 	// and idle to update the game logic
 	glutDisplayFunc(displayCallback);
-	glutIdleFunc(idleCallback);
+	// glutIdleFunc(idleCallback);
 
 	// register callback for inputs
 	glutKeyboardFunc(&onKeyDown);

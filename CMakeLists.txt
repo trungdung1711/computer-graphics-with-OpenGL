@@ -17,7 +17,9 @@ find_package(GLU REQUIRED)
 # source files
 set(SOURCES
     # src/main.cpp
-    src/assignment-2210573.cpp
+    # src/assignment-2210573.cpp
+    tests/camera.cpp
+    src/main.cpp
 )
 
 # For header files, -I
@@ -34,6 +36,7 @@ target_include_directories(cg_with_opengl
     PRIVATE  
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/private
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL OpenGL::GLU GLUT::GLUT)
