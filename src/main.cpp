@@ -6,8 +6,8 @@
 
 int WIDTH = 500;
 int HEIGHT = 500;
-int WINDOW_X = 500;
-int WINDOW_Y = 0;
+int WINDOW_X = 800;
+int WINDOW_Y = 200;
 
 int X = 0;
 int Y = 0;
@@ -31,8 +31,8 @@ int main(int argc, char **argv)
 
     // register callback for display
     // and idle to update the game logic
-    glutDisplayFunc(testCameraDisplay);
-    glutPassiveMotionFunc(move);
+    glutDisplayFunc(testDrawCone);
+    // glutPassiveMotionFunc(move);
 
     // start the whole loop
     // normally, this loop will re-render

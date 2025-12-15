@@ -19,6 +19,7 @@ set(SOURCES
     # src/main.cpp
     # src/assignment-2210573.cpp
     tests/camera.cpp
+    tests/cone.cpp
     src/main.cpp
 )
 
