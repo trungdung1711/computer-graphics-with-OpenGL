@@ -163,7 +163,10 @@ void testDrawCone()
     // prepare point
     for (int i = 0; i < numSlices; ++i)
     {
-        m->pt[i] = Point3(radius * std::cos(alpha), 0.0f, std::sin(alpha));
+        // m->pt[i] = Point3(radius * std::cos(alpha), 0.0f, std::sin(alpha));
+        m->pt[i].x = radius * std::cos(alpha);
+        m->pt[i].y = 0.0f;
+        m->pt[i].z = radius * std::sin(alpha);
 
         alpha += delta;
     }
